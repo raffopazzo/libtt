@@ -3,6 +3,7 @@
 #include <boost/variant/recursive_wrapper.hpp>
 
 #include <compare>
+#include <optional>
 #include <set>
 #include <string>
 #include <variant>
@@ -45,6 +46,7 @@ struct term
     static term var(std::string name);
     static term app(term x, term y);
     static term abs(std::string var_name, term body);
+    static term abs(var_t name, term body);
 };
 
 bool is_var(term const&);

@@ -29,6 +29,11 @@ term term::abs(std::string var_name, term body)
     return term(abs_t(var_t(std::move(var_name)), std::move(body)));
 }
 
+term term::abs(var_t name, term body)
+{
+    return term(abs_t(std::move(name), std::move(body)));
+}
+
 bool is_var(term const& x) { return std::holds_alternative<term::var_t>(x.value); }
 bool is_app(term const& x) { return std::holds_alternative<term::app_t>(x.value); }
 bool is_abs(term const& x) { return std::holds_alternative<term::abs_t>(x.value); }

@@ -259,4 +259,55 @@ BOOST_AUTO_TEST_CASE(closed_term_tests)
     BOOST_TEST(is_closed(term::abs("x", term::abs("y", term::abs("z", xxy)))));
 }
 
+BOOST_AUTO_TEST_CASE(replace_tests)
+{
+    using namespace libtt::untyp;
+    auto const x = term::var("x");
+    auto const y = term::var("y");
+    auto const var_x = term::var_t{"x"};
+    auto const var_y = term::var_t{"y"};
+    auto const app1 = term::app(x, y);
+    auto const abs1 = term::abs(var_x, x);
+    auto const abs2 = term::abs(var_x, term::app(x, y));
+    BOOST_TEST(replace(app1, var_x, var_y) == term::app(y, y));
+    BOOST_TEST(replace(abs1, var_x, var_y) == abs1);
+    BOOST_TEST(replace(abs2, var_y, var_x) == term::abs(var_x, term::app(x, x)));
+}
+
+BOOST_AUTO_TEST_CASE(rename_tests)
+{
+    using namespace libtt::untyp;
+    auto const x = term::var("x");
+    auto const y = term::var("y");
+    auto const z = term::var("z");
+    auto const var_x = term::var_t{"x"};
+    auto const var_y = term::var_t{"y"};
+    auto const var_z = term::var_t{"z"};
+    auto const abs1 = term::abs_t(var_x, x);
+    auto const abs2 = term::abs_t(var_x, term::app(x, y));
+    auto const abs3 = term::abs_t(var_x, term::abs(var_x, term::app(x, x)));
+    auto const abs4 = term::abs_t(var_x, term::abs(var_y, term::app(x, y)));
+    auto const abs5 = term::abs_t(var_x, term::app(x, term::abs(var_y, term::app(x, y))));
+
+    auto renamed = rename(abs1, var_y);
+    BOOST_REQUIRE(renamed.has_value());
+    BOOST_TEST(*renamed == term::abs_t(var_y, y));
+
+    renamed = rename(abs2, var_z);
+    BOOST_REQUIRE(renamed.has_value());
+    BOOST_TEST(*renamed == term::abs_t(var_z, term::app(z, y)));
+
+    BOOST_TEST(rename(abs2, var_y).has_value() == false);
+
+    renamed = rename(abs3, var_y);
+    BOOST_REQUIRE(renamed.has_value());
+    BOOST_TEST(*renamed == term::abs_t(var_y, term::abs(var_x, term::app(x, x))));
+
+    BOOST_TEST(rename(abs4, var_y).has_value() == false);
+
+    renamed = rename(abs5, var_z);
+    BOOST_REQUIRE(renamed.has_value());
+    BOOST_TEST(*renamed == term::abs_t(var_z, term::app(z, term::abs(var_y, term::app(z, y)))));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
