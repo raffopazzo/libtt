@@ -214,7 +214,17 @@ BOOST_AUTO_TEST_CASE(free_variables_tests)
     BOOST_TEST(libtt::untyp::free_variables(app6) == expected, boost::test_tools::per_element{});
     expected = std::set{var_t{"x"}, var_t{"y"}};
     BOOST_TEST(libtt::untyp::free_variables(app7) == expected, boost::test_tools::per_element{});
+}
 
+BOOST_AUTO_TEST_CASE(closed_term_tests)
+{
+    using namespace libtt::untyp;
+    auto const x = term::var("x");
+    auto const y = term::var("y");
+    auto const xxy = term::app(term::app(x, x), y);
+    BOOST_TEST(not is_closed(term::abs("x", xxy)));
+    BOOST_TEST(is_closed(term::abs("x", term::abs("y", xxy))));
+    BOOST_TEST(is_closed(term::abs("x", term::abs("y", term::abs("z", xxy)))));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

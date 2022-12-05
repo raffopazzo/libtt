@@ -51,6 +51,8 @@ bool is_var(term const&);
 bool is_app(term const&);
 bool is_abs(term const&);
 
+bool is_closed(term const&);
+
 std::set<term::var_t> free_variables(term const&);
 
 }

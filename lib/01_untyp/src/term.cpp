@@ -33,6 +33,8 @@ bool is_var(term const& x) { return std::holds_alternative<term::var_t>(x.value)
 bool is_app(term const& x) { return std::holds_alternative<term::app_t>(x.value); }
 bool is_abs(term const& x) { return std::holds_alternative<term::abs_t>(x.value); }
 
+bool is_closed(term const& x) { return free_variables(x).empty(); }
+
 namespace {
 
 std::set<term::var_t> free_variables(term::var_t const& x) { return {x}; }
