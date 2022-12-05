@@ -54,5 +54,6 @@ bool is_abs(term const&);
 bool is_closed(term const&);
 
 std::set<term::var_t> free_variables(term const&);
+std::set<term::var_t> binding_variables(term const&);
 
 }

@@ -35,28 +35,48 @@ bool is_abs(term const& x) { return std::holds_alternative<term::abs_t>(x.value)
 
 bool is_closed(term const& x) { return free_variables(x).empty(); }
 
-namespace {
-
-std::set<term::var_t> free_variables(term::var_t const& x) { return {x}; }
-std::set<term::var_t> free_variables(term::app_t const& x)
-{
-    auto left_set = free_variables(x.left.get());
-    auto right_set = free_variables(x.right.get());
-    left_set.insert(std::make_move_iterator(right_set.begin()), std::make_move_iterator(right_set.end()));
-    return left_set;
-}
-std::set<term::var_t> free_variables(term::abs_t const& x)
-{
-    auto tmp = free_variables(x.body.get());
-    tmp.erase(x.var);
-    return tmp;
-}
-
-}
-
 std::set<term::var_t> free_variables(term const& x)
 {
-    return std::visit([] (auto const& t) { return free_variables(t); }, x.value);
+    struct visitor
+    {
+        std::set<term::var_t> operator()(term::var_t const& x) const { return {x}; }
+        std::set<term::var_t> operator()(term::app_t const& x) const
+        {
+            auto left_set = free_variables(x.left.get());
+            auto right_set = free_variables(x.right.get());
+            left_set.insert(std::make_move_iterator(right_set.begin()), std::make_move_iterator(right_set.end()));
+            return left_set;
+        }
+        std::set<term::var_t> operator()(term::abs_t const& x) const
+        {
+            auto tmp = free_variables(x.body.get());
+            tmp.erase(x.var);
+            return tmp;
+        }
+    };
+    return std::visit(visitor{}, x.value);
+}
+
+std::set<term::var_t> binding_variables(term const& x)
+{
+    struct visitor
+    {
+        std::set<term::var_t> operator()(term::var_t const& x) const { return {}; }
+        std::set<term::var_t> operator()(term::app_t const& x) const
+        {
+            auto left_set = binding_variables(x.left.get());
+            auto right_set = binding_variables(x.right.get());
+            left_set.insert(std::make_move_iterator(right_set.begin()), std::make_move_iterator(right_set.end()));
+            return left_set;
+        }
+        std::set<term::var_t> operator()(term::abs_t const& x)
+        {
+            auto tmp = binding_variables(x.body.get());
+            tmp.insert(x.var);
+            return tmp;
+        }
+    };
+    return std::visit(visitor{}, x.value);
 }
 
 }

@@ -216,6 +216,48 @@ BOOST_AUTO_TEST_CASE(free_variables_tests)
     BOOST_TEST(libtt::untyp::free_variables(app7) == expected, boost::test_tools::per_element{});
 }
 
+BOOST_AUTO_TEST_CASE(binding_variables_tests)
+{
+    using var_t = libtt::untyp::term::var_t;
+    auto const x = libtt::untyp::term::var("x");
+    auto const y = libtt::untyp::term::var("y");
+    auto const app1 = libtt::untyp::term::app(x, y);
+    auto const app2 = libtt::untyp::term::app(x, x);
+    auto const abs1 = libtt::untyp::term::abs("x", app1);
+    auto const abs2 = libtt::untyp::term::abs("y", app1);
+    auto const abs3 = libtt::untyp::term::abs("x", app2);
+    auto const app3 = libtt::untyp::term::app(abs3, abs3);
+    auto const abs4 = libtt::untyp::term::abs("x", abs2);
+    auto const app4 = libtt::untyp::term::app(app2, app2);
+    auto const abs5 = libtt::untyp::term::abs("z", abs4);
+    auto const app5 = libtt::untyp::term::app(x, app2);
+    auto const app6 = libtt::untyp::term::app(abs1, y);
+    auto const app7 = libtt::untyp::term::app(x, abs1);
+    auto expected = std::set<var_t>{};
+    BOOST_TEST(libtt::untyp::binding_variables(x) == expected, boost::test_tools::per_element{});
+    BOOST_TEST(libtt::untyp::binding_variables(y) == expected, boost::test_tools::per_element{});
+    BOOST_TEST(libtt::untyp::binding_variables(app1) == expected, boost::test_tools::per_element{});
+    BOOST_TEST(libtt::untyp::binding_variables(app2) == expected, boost::test_tools::per_element{});
+    expected = std::set{var_t{"x"}};
+    BOOST_TEST(libtt::untyp::binding_variables(abs1) == expected, boost::test_tools::per_element{});
+    expected = std::set{var_t{"y"}};
+    BOOST_TEST(libtt::untyp::binding_variables(abs2) == expected, boost::test_tools::per_element{});
+    expected = std::set{var_t{"x"}};
+    BOOST_TEST(libtt::untyp::binding_variables(abs3) == expected, boost::test_tools::per_element{});
+    BOOST_TEST(libtt::untyp::binding_variables(app3) == expected, boost::test_tools::per_element{});
+    expected = std::set{var_t{"x"}, var_t{"y"}};
+    BOOST_TEST(libtt::untyp::binding_variables(abs4) == expected, boost::test_tools::per_element{});
+    expected = {};
+    BOOST_TEST(libtt::untyp::binding_variables(app4) == expected, boost::test_tools::per_element{});
+    expected = std::set{var_t{"x"}, var_t{"y"}, var_t{"z"}};
+    BOOST_TEST(libtt::untyp::binding_variables(abs5) == expected, boost::test_tools::per_element{});
+    expected = {};
+    BOOST_TEST(libtt::untyp::binding_variables(app5) == expected, boost::test_tools::per_element{});
+    expected = std::set{var_t{"x"}};
+    BOOST_TEST(libtt::untyp::binding_variables(app6) == expected, boost::test_tools::per_element{});
+    BOOST_TEST(libtt::untyp::binding_variables(app7) == expected, boost::test_tools::per_element{});
+}
+
 BOOST_AUTO_TEST_CASE(closed_term_tests)
 {
     using namespace libtt::untyp;
