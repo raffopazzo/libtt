@@ -3,39 +3,29 @@
 
 #include "libtt/untyp.hpp"
 
-struct term_ostream_visitor
-{
-    std::ostream& os;
-
-    std::ostream& operator()(libtt::untyp::term::var_t const&);
-    std::ostream& operator()(libtt::untyp::term::app_t const&);
-    std::ostream& operator()(libtt::untyp::term::abs_t const&);
-};
-
 namespace libtt::untyp
 {
-    std::ostream& operator<<(std::ostream& os, libtt::untyp::term const& x)
+    std::ostream& operator<<(std::ostream&, term const&);
+    std::ostream& operator<<(std::ostream&, term::var_t const&);
+    std::ostream& operator<<(std::ostream&, term::app_t const&);
+    std::ostream& operator<<(std::ostream&, term::abs_t const&);
+
+    std::ostream& operator<<(std::ostream& os, term const& x)
     {
-	return std::visit(term_ostream_visitor{os}, x.value);
+	return std::visit([&os] (auto const& y) -> std::ostream& { return os << y; }, x.value);
     }
-    std::ostream& operator<<(std::ostream& os, libtt::untyp::term::var_t const& x)
+    std::ostream& operator<<(std::ostream& os, term::var_t const& x)
     {
         return os << x.name;
     }
-}
-
-std::ostream& term_ostream_visitor::operator()(libtt::untyp::term::var_t const& x)
-{
-    return os << x.name;
-}
-std::ostream& term_ostream_visitor::operator()(libtt::untyp::term::app_t const& x)
-{
-    return os << '(' << x.left.get() << ' ' << x.right.get() << ')';
-}
-
-std::ostream& term_ostream_visitor::operator()(libtt::untyp::term::abs_t const& x)
-{
-    return os << "(lambda " << x.var.name << " . "<< x.body.get() << ')';
+    std::ostream& operator<<(std::ostream& os, term::app_t const& x)
+    {
+        return os << '(' << x.left.get() << ' ' << x.right.get() << ')';
+    }
+    std::ostream& operator<<(std::ostream& os, term::abs_t const& x)
+    {
+        return os << "(lambda " << x.var << " . "<< x.body.get() << ')';
+    }
 }
 
 BOOST_AUTO_TEST_SUITE(untyp_tests)
