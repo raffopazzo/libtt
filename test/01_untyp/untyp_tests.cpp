@@ -310,4 +310,36 @@ BOOST_AUTO_TEST_CASE(rename_tests)
     BOOST_TEST(*renamed == term::abs_t(var_z, term::app(z, term::abs(var_y, term::app(z, y)))));
 }
 
+BOOST_AUTO_TEST_CASE(alpha_equivalence_tests)
+{
+    using namespace libtt::untyp;
+    auto const x = term::var("x");
+    auto const y = term::var("y");
+    auto const z = term::var("z");
+    auto const u = term::var("u");
+    auto const v = term::var("v");
+    auto const abs1_1 = term::app(term::abs("x", term::app(x, term::abs("z", term::app(x, y)))), z);
+    auto const abs1_2 = term::app(term::abs("u", term::app(u, term::abs("z", term::app(u, y)))), z);
+    auto const abs1_3 = term::app(term::abs("z", term::app(z, term::abs("x", term::app(z, y)))), z);
+    auto const abs1_4 = term::app(term::abs("y", term::app(y, term::abs("z", term::app(y, y)))), z);
+    auto const abs1_5 = term::app(term::abs("z", term::app(z, term::abs("z", term::app(z, y)))), z);
+    auto const abs1_6 = term::app(term::abs("u", term::app(u, term::abs("z", term::app(u, y)))), v);
+    BOOST_TEST(is_alpha_equivalent(abs1_1, abs1_1));
+    BOOST_TEST(is_alpha_equivalent(abs1_1, abs1_2));
+    BOOST_TEST(is_alpha_equivalent(abs1_1, abs1_3));
+    BOOST_TEST(not is_alpha_equivalent(abs1_1, abs1_4));
+    BOOST_TEST(not is_alpha_equivalent(abs1_1, abs1_5));
+    BOOST_TEST(not is_alpha_equivalent(abs1_1, abs1_6));
+
+    auto const abs2_0 = term::abs("x", term::abs("y", term::app(term::app(x, z), y)));
+    auto const abs2_1 = term::abs("v", term::abs("y", term::app(term::app(v, z), y)));
+    auto const abs2_2 = term::abs("v", term::abs("u", term::app(term::app(v, z), u)));
+    auto const abs2_3 = term::abs("y", term::abs("y", term::app(term::app(y, z), y)));
+    auto const abs2_4 = term::abs("z", term::abs("y", term::app(term::app(z, z), y)));
+    BOOST_TEST(is_alpha_equivalent(abs2_0, abs2_1));
+    BOOST_TEST(is_alpha_equivalent(abs2_0, abs2_2));
+    BOOST_TEST(not is_alpha_equivalent(abs2_0, abs2_3));
+    BOOST_TEST(not is_alpha_equivalent(abs2_0, abs2_4));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
