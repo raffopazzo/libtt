@@ -1,58 +1,32 @@
 #include "libtt/untyp/alpha_equivalence.hpp"
 
+#include "libtt/untyp/detail/renaming_context.hpp"
+#include "libtt/untyp/replace.hpp"
+
+
 #include <algorithm>
 #include <iterator>
 #include <ranges>
 
 namespace libtt::untyp {
 
-static term::var_t do_replace(term::var_t const&, term::var_t const& from, term::var_t const& to);
-static term::app_t do_replace(term::app_t const&, term::var_t const& from, term::var_t const& to);
-static term::abs_t do_replace(term::abs_t const&, term::var_t const& from, term::var_t const& to);
-
-term::var_t do_replace(term::var_t const& x, term::var_t const& from, term::var_t const& to)
-{
-    return x == from ? to : x;
-}
-
-term::app_t do_replace(term::app_t const& x, term::var_t const& from, term::var_t const& to)
-{
-    return term::app_t(replace(x.left.get(), from, to), replace(x.right.get(), from, to));
-}
-
-term::abs_t do_replace(term::abs_t const& x, term::var_t const& from, term::var_t const& to)
-{
-    // Only free occurrences of `from` can be replaced; so if the binding variable is `from`,
-    // then all free occurrences of `from` in `body` are now bound and cannot be replaced.
-    return x.var == from ? x : term::abs_t(x.var, replace(x.body.get(), from, to));
-}
-
-term replace(term const& x, term::var_t const& from, term::var_t const& to)
-{
-    return std::visit([&] (auto const& v) { return term(do_replace(v, from, to)); }, x.value);
-}
-
-std::optional<term::abs_t> rename(term::abs_t const& x, term::var_t const& new_var)
-{
-    auto const& body = x.body.get();
-    if (free_variables(body).contains(new_var) or binding_variables(body).contains(new_var))
-        return std::nullopt;
-    return term::abs_t(new_var, replace(body, x.var, new_var));
-}
-
 class alpha_equivalence_visitor
 {
-    std::set<term::var_t> forbidden_variables;
-    std::size_t next_var_id = 0ul;
+    renaming_context ctx;
 
 public:
-    alpha_equivalence_visitor(term const& x, term const& y)
+    alpha_equivalence_visitor(term const& x, term const& y) :
+        ctx([&]
+        {
+            std::set<term::var_t> forbidden_variables;
+            auto inserter = std::inserter(forbidden_variables, forbidden_variables.end());
+            std::ranges::move(free_variables(x), inserter);
+            std::ranges::move(free_variables(y), inserter);
+            std::ranges::move(binding_variables(x), inserter);
+            std::ranges::move(binding_variables(y), inserter);
+            return forbidden_variables;
+        }())
     {
-        auto inserter = std::inserter(forbidden_variables, forbidden_variables.end());
-        std::ranges::move(free_variables(x), inserter);
-        std::ranges::move(free_variables(y), inserter);
-        std::ranges::move(binding_variables(x), inserter);
-        std::ranges::move(binding_variables(y), inserter);
     }
 
     template <typename T, typename U>
@@ -81,22 +55,10 @@ public:
         // for instance it would fail for `lambda x y . x y` and `lambda y x . y x`; but we can use transitivity!
         // so we can rename `lambda y . N` to an alpha-equivalent `lambda s . N[y->s]` for some valid `s` and then
         // check whether `M` is alpha-equivalent to `N[y->s]`.
-        auto const& tmp = next_var_name();
+        auto const& tmp = ctx.next_var_name();
         auto const& renamed_x = replace(x.body.get(), x.var, tmp);
         auto const& renamed_y = replace(y.body.get(), y.var, tmp);
         return is_alpha_equivalent(renamed_x, renamed_y);
-    }
-
-private:
-    term::var_t next_var_name()
-    {
-        do
-        {
-            auto const v = term::var_t("tmp_" + std::to_string(next_var_id++));
-            if (not forbidden_variables.contains(v))
-                return v;
-        }
-        while (true);
     }
 };
 

@@ -4,6 +4,6 @@
 
 namespace libtt::untyp {
 
-bool is_alpha_equivalent(term const&, term const&);
+term replace(term const&, term::var_t const& from, term::var_t const& to);
 
 }

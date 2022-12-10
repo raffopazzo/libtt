@@ -26,6 +26,24 @@ namespace libtt::untyp
     {
         return os << "(lambda " << x.var << " . "<< x.body.get() << ')';
     }
+
+    static term make_app(std::vector<term> xs)
+    {
+        auto it = xs.begin();
+        auto rv = *it++;
+        while (it != xs.end())
+            rv = term::app(rv, *it++);
+        return rv;
+    }
+
+    static term make_abs(std::vector<std::string> vars, term body)
+    {
+        auto it = vars.rbegin();
+        auto rv = term::abs(*it++, body);
+        while (it != vars.rend())
+            rv = term::abs(*it++, rv);
+        return rv;
+    }
 }
 
 BOOST_AUTO_TEST_SUITE(untyp_tests)
@@ -341,5 +359,26 @@ BOOST_AUTO_TEST_CASE(alpha_equivalence_tests)
     BOOST_TEST(not is_alpha_equivalent(abs2_0, abs2_3));
     BOOST_TEST(not is_alpha_equivalent(abs2_0, abs2_4));
 }
+
+BOOST_AUTO_TEST_CASE(substitute_tests)
+{
+    using namespace libtt::untyp;
+    auto const x = term::var("x");
+    auto const y = term::var("y");
+    auto const z = term::var("z");
+    auto const tmp_0 = term::var("tmp_0");
+    auto const xy = term::app(x, y);
+    auto const abs1 = term::abs("y", term::app(y, x));
+    auto const abs2 = term::abs("x", term::app(y, x));
+    auto const abs3 = make_abs({"x", "y"}, make_app({z, z, x}));
+    BOOST_TEST(substitute(abs1, term::var_t("x"), xy) == term::abs("tmp_0", term::app(tmp_0, xy)));
+    BOOST_TEST(substitute(abs2, term::var_t("x"), xy) == term::abs("tmp_0", term::app(y, tmp_0)));
+
+    auto const result = substitute(abs3, term::var_t("z"), y);
+    BOOST_TEST(result == make_abs({"tmp_0", "tmp_1"}, make_app({y, y, tmp_0})));
+    BOOST_TEST(is_alpha_equivalent(result, make_abs({"x", "v"}, make_app({y, y, x}))));
+    BOOST_TEST(not is_alpha_equivalent(result, make_abs({"x", "y"}, make_app({y, y, x}))));
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()

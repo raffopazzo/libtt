@@ -1,11 +1,19 @@
 add_library(libtt_untyp_lib
+  include/libtt/untyp/detail/renaming_context.hpp
   include/libtt/untyp/alpha_equivalence.hpp
   include/libtt/untyp/pretty_print.hpp
+  include/libtt/untyp/rename.hpp
+  include/libtt/untyp/replace.hpp
+  include/libtt/untyp/substitute.hpp
   include/libtt/untyp/subterms.hpp
   include/libtt/untyp/term.hpp
   include/libtt/untyp.hpp
+  src/detail/renaming_context.cpp
   src/alpha_equivalence.cpp
   src/pretty_print.cpp
+  src/rename.cpp
+  src/replace.cpp
+  src/substitute.cpp
   src/subterms.cpp
   src/term.cpp
   src/untyp.cpp
