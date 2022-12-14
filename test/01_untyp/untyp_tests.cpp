@@ -297,35 +297,42 @@ BOOST_AUTO_TEST_CASE(rename_tests)
     using namespace libtt::untyp;
     auto const x = term::var("x");
     auto const y = term::var("y");
-    auto const z = term::var("z");
     auto const var_x = term::var_t{"x"};
-    auto const var_y = term::var_t{"y"};
-    auto const var_z = term::var_t{"z"};
+
+    // basic renaming case
     auto const abs1 = term::abs_t(var_x, x);
+    auto const renamed1 = rename(abs1);
+    BOOST_TEST(renamed1.var != abs1.var);
+    BOOST_TEST(renamed1 == term::abs_t(renamed1.var, term::var(renamed1.var.name)));
+    BOOST_TEST(renamed1 == rename(abs1)); // rename must be deterministic
+
+    // allow the user to specify which variable names cannot be used for renaming
+    auto const renamed1_2 = rename(abs1, {renamed1.var});
+    BOOST_TEST(renamed1_2.var != renamed1.var);
+    BOOST_TEST(renamed1_2 == term::abs_t(renamed1_2.var, term::var(renamed1_2.var.name)));
+    BOOST_TEST(renamed1_2 == rename(abs1, {renamed1.var})); // rename must be deterministic
+
+    // rename recursively
     auto const abs2 = term::abs_t(var_x, term::app(x, y));
+    auto const renamed2 = rename(abs2);
+    BOOST_TEST(renamed2.var != abs2.var);
+    BOOST_TEST(renamed2 == term::abs_t(renamed2.var, term::app(term::var(renamed2.var.name), y)));
+    BOOST_TEST(renamed2 == rename(abs2));// rename must be deterministic
+
+    // renaming an internal abstraction over the same name should do nothing on the internal abstraction
     auto const abs3 = term::abs_t(var_x, term::abs(var_x, term::app(x, x)));
-    auto const abs4 = term::abs_t(var_x, term::abs(var_y, term::app(x, y)));
-    auto const abs5 = term::abs_t(var_x, term::app(x, term::abs(var_y, term::app(x, y))));
+    auto const renamed3 = rename(abs3);
+    BOOST_TEST(renamed3.var != abs3.var);
+    BOOST_TEST(renamed3 == term::abs_t(renamed3.var, term::abs(var_x, term::app(x, x))));
+    BOOST_TEST(renamed3 == rename(abs3)); // rename must be deterministic
 
-    auto renamed = rename(abs1, var_y);
-    BOOST_REQUIRE(renamed.has_value());
-    BOOST_TEST(*renamed == term::abs_t(var_y, y));
-
-    renamed = rename(abs2, var_z);
-    BOOST_REQUIRE(renamed.has_value());
-    BOOST_TEST(*renamed == term::abs_t(var_z, term::app(z, y)));
-
-    BOOST_TEST(rename(abs2, var_y).has_value() == false);
-
-    renamed = rename(abs3, var_y);
-    BOOST_REQUIRE(renamed.has_value());
-    BOOST_TEST(*renamed == term::abs_t(var_y, term::abs(var_x, term::app(x, x))));
-
-    BOOST_TEST(rename(abs4, var_y).has_value() == false);
-
-    renamed = rename(abs5, var_z);
-    BOOST_REQUIRE(renamed.has_value());
-    BOOST_TEST(*renamed == term::abs_t(var_z, term::app(z, term::abs(var_y, term::app(z, y)))));
+    // cannot use internal binding variables
+    auto const abs4 = term::abs_t(var_x, term::abs(renamed1.var, term::var(renamed1.var.name)));
+    auto const renamed4 = rename(abs4);
+    BOOST_TEST(renamed4.var != abs4.var);
+    BOOST_TEST(renamed4.var != renamed1.var);
+    BOOST_TEST(renamed4 == term::abs_t(renamed4.var, term::abs(renamed1.var, term::var(renamed1.var.name))));
+    BOOST_TEST(renamed4 == rename(abs4)); // rename must be deterministic
 }
 
 BOOST_AUTO_TEST_CASE(alpha_equivalence_tests)

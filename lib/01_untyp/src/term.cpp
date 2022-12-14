@@ -84,4 +84,13 @@ std::set<term::var_t> binding_variables(term const& x)
     return std::visit(visitor{}, x.value);
 }
 
+std::set<term::var_t> binding_and_free_variables(term const& x)
+{
+    std::set<term::var_t> result;
+    auto inserter = std::inserter(result, result.end());
+    std::ranges::move(free_variables(x), inserter);
+    std::ranges::move(binding_variables(x), inserter);
+    return result;
+}
+
 }

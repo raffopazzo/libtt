@@ -2,13 +2,10 @@
 
 #include "libtt/untyp/term.hpp"
 
-#include <optional>
+#include <set>
 
 namespace libtt::untyp {
 
-class renaming_context;
-
-term::abs_t rename(term::abs_t const&, renaming_context&);
-std::optional<term::abs_t> rename(term::abs_t const&, term::var_t const& new_var);
+term::abs_t rename(term::abs_t const&, std::set<term::var_t> const& forbidden_names = {});
 
 }

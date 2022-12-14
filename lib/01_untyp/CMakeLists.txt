@@ -1,5 +1,5 @@
 add_library(libtt_untyp_lib
-  include/libtt/untyp/detail/renaming_context.hpp
+  include/libtt/untyp/detail/tmp_var_generator.hpp
   include/libtt/untyp/alpha_equivalence.hpp
   include/libtt/untyp/pretty_print.hpp
   include/libtt/untyp/rename.hpp
@@ -8,7 +8,7 @@ add_library(libtt_untyp_lib
   include/libtt/untyp/subterms.hpp
   include/libtt/untyp/term.hpp
   include/libtt/untyp.hpp
-  src/detail/renaming_context.cpp
+  src/detail/tmp_var_generator.cpp
   src/alpha_equivalence.cpp
   src/pretty_print.cpp
   src/rename.cpp
