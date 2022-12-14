@@ -373,18 +373,24 @@ BOOST_AUTO_TEST_CASE(substitute_tests)
     auto const x = term::var("x");
     auto const y = term::var("y");
     auto const z = term::var("z");
-    auto const tmp_0 = term::var("tmp_0");
     auto const xy = term::app(x, y);
-    auto const abs1 = term::abs("y", term::app(y, x));
-    auto const abs2 = term::abs("x", term::app(y, x));
-    auto const abs3 = make_abs({"x", "y"}, make_app({z, z, x}));
-    BOOST_TEST(substitute(abs1, term::var_t("x"), xy) == term::abs("tmp_0", term::app(tmp_0, xy)));
-    BOOST_TEST(substitute(abs2, term::var_t("x"), xy) == term::abs("tmp_0", term::app(y, tmp_0)));
 
-    auto const result = substitute(abs3, term::var_t("z"), y);
-    BOOST_TEST(result == make_abs({"tmp_0", "tmp_1"}, make_app({y, y, tmp_0})));
-    BOOST_TEST(is_alpha_equivalent(result, make_abs({"x", "v"}, make_app({y, y, x}))));
-    BOOST_TEST(not is_alpha_equivalent(result, make_abs({"x", "y"}, make_app({y, y, x}))));
+    auto const abs1 = term::abs("y", term::app(y, x));
+    auto const sub1 = substitute(abs1, term::var_t("x"), xy);
+    BOOST_REQUIRE(std::holds_alternative<term::abs_t>(sub1.value));
+    auto const var1 = std::get<term::abs_t>(sub1.value).var;
+    BOOST_TEST(var1.name != "y");
+    BOOST_TEST(sub1 == term::abs(var1, term::app(term::var(var1.name), xy)));
+
+    auto const abs2 = term::abs("x", term::app(y, x));
+    auto const sub2 = substitute(abs2, term::var_t("x"), xy);
+    BOOST_TEST(sub2 == abs2); // `x` is a binding variable, so substitution should not take place
+
+    auto const abs3 = make_abs({"x", "y"}, make_app({z, z, x}));
+    auto const sub3 = substitute(abs3, term::var_t("z"), y);
+    BOOST_TEST(sub3 != abs3);
+    BOOST_TEST(is_alpha_equivalent(sub3, make_abs({"x", "v"}, make_app({y, y, x}))));
+    BOOST_TEST(not is_alpha_equivalent(sub3, make_abs({"x", "y"}, make_app({y, y, x}))));
 }
 
 

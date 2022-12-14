@@ -25,6 +25,10 @@ term substitute(term const& x, term::var_t const& var, term const& y)
 
 	term operator()(term::abs_t const& x)
 	{
+	    if (x.var == var)
+		// Only free occurrences of `var` can be substituted; so if the binding variable is `var`,
+		// then all free occurrences of `var` in `body` are now bound and cannot be substituted.
+		return term::abs(x.var, x.body.get());
 	    auto const& renamed = rename(x, free_variables(y));
 	    return term::abs(renamed.var, substitute(renamed.body.get(), var, y));
 	}
