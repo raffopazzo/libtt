@@ -1,6 +1,7 @@
 add_library(libtt_untyp_lib
   include/libtt/untyp/detail/tmp_var_generator.hpp
   include/libtt/untyp/alpha_equivalence.hpp
+  include/libtt/untyp/beta_reduction.hpp
   include/libtt/untyp/pretty_print.hpp
   include/libtt/untyp/rename.hpp
   include/libtt/untyp/replace.hpp
@@ -10,6 +11,7 @@ add_library(libtt_untyp_lib
   include/libtt/untyp.hpp
   src/detail/tmp_var_generator.cpp
   src/alpha_equivalence.cpp
+  src/beta_reduction.cpp
   src/pretty_print.cpp
   src/rename.cpp
   src/replace.cpp

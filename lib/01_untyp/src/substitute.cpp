@@ -29,8 +29,14 @@ term substitute(term const& x, term::var_t const& var, term const& y)
 		// Only free occurrences of `var` can be substituted; so if the binding variable is `var`,
 		// then all free occurrences of `var` in `body` are now bound and cannot be substituted.
 		return term::abs(x.var, x.body.get());
-	    auto const& renamed = rename(x, free_variables(y));
-	    return term::abs(renamed.var, substitute(renamed.body.get(), var, y));
+	    auto const& free_vars_y = free_variables(y);
+	    if (free_vars_y.contains(x.var))
+	    {
+		auto const& renamed = rename(x, free_vars_y);
+		return term::abs(renamed.var, substitute(renamed.body.get(), var, y));
+	    }
+	    else
+		return term::abs(x.var, substitute(x.body.get(), var, y));
 	}
     };
     return std::visit(visitor{var, y}, x.value);

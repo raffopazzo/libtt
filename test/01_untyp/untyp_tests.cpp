@@ -406,5 +406,21 @@ BOOST_AUTO_TEST_CASE(substitute_tests)
     BOOST_TEST(is_alpha_equivalent(lhs, rhs));
 }
 
+BOOST_AUTO_TEST_CASE(one_step_beta_reduction_tests)
+{
+    using namespace libtt::untyp;
+    auto const v = term::var("v");
+    auto const x = term::var("x");
+    auto const y = term::var("y");
+    auto const z = term::var("z");
+
+    auto const abs1 = term::abs("x", term::app(term::abs("y", term::app(y, x)), z));
+    auto const app1 = term::app(abs1, v);
+    BOOST_TEST(one_step_beta_reduction(app1) == term::app(term::abs("y", term::app(y, v)), z));
+
+    auto const abs2 = term::abs("x", term::app(x, x));
+    auto const app2 = term::app(abs2, abs2);
+    BOOST_TEST(one_step_beta_reduction(app2) == app2);
+}
 
 BOOST_AUTO_TEST_SUITE_END()
