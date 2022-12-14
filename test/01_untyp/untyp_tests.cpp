@@ -391,6 +391,19 @@ BOOST_AUTO_TEST_CASE(substitute_tests)
     BOOST_TEST(sub3 != abs3);
     BOOST_TEST(is_alpha_equivalent(sub3, make_abs({"x", "v"}, make_app({y, y, x}))));
     BOOST_TEST(not is_alpha_equivalent(sub3, make_abs({"x", "y"}, make_app({y, y, x}))));
+
+    // Lemma 1.6.5 page 13 of Nederpelt-Geuvers
+    // Let x != y and assume x not a free variable in L. Then:
+    // M[x:=N][y:=L] == M[y:=L][x:=N[y:=L]]
+    auto const& M = abs1;
+    auto const& N = abs2;
+    auto const& L = abs3;
+    auto const M_x_N = substitute(M, term::var_t("x"), N);
+    auto const M_y_L = substitute(M, term::var_t("y"), L);
+    auto const N_y_L = substitute(N, term::var_t("y"), L);
+    auto const lhs = substitute(M_x_N, term::var_t("y"), L);
+    auto const rhs = substitute(M_y_L, term::var_t("x"), N_y_L);
+    BOOST_TEST(is_alpha_equivalent(lhs, rhs));
 }
 
 
