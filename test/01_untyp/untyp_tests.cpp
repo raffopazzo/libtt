@@ -430,24 +430,31 @@ BOOST_AUTO_TEST_CASE(one_step_beta_reduction_tests)
     BOOST_TEST(contractum.value() == term::app(term::abs("y", term::app(y, v)), z));
 
     auto const abs2 = term::abs("x", term::app(x, x));
-    auto const app2 = term::app(abs2, abs2);
-    contractum = one_step_beta_reduction(app2);
+    auto const omega = term::app(abs2, abs2);
+    contractum = one_step_beta_reduction(omega);
     BOOST_REQUIRE(contractum.has_value());
-    BOOST_TEST(contractum.value() == app2);
+    BOOST_TEST(contractum.value() == omega);
 
-    auto const app3_1 = term::app(x, app2);
-    auto const app3_2 = term::app(app2, x);
-    contractum = one_step_beta_reduction(app3_1);
+    auto const app2_1 = term::app(x, omega);
+    auto const app2_2 = term::app(omega, x);
+    contractum = one_step_beta_reduction(app2_1);
     BOOST_REQUIRE(contractum.has_value());
-    BOOST_TEST(contractum.value() == app3_1);
-    contractum = one_step_beta_reduction(app3_2);
+    BOOST_TEST(contractum.value() == app2_1);
+    contractum = one_step_beta_reduction(app2_2);
     BOOST_REQUIRE(contractum.has_value());
-    BOOST_TEST(contractum.value() == app3_2);
+    BOOST_TEST(contractum.value() == app2_2);
 
-    auto const abs3 = term::abs("x", app2);
+    auto const abs3 = term::abs("x", omega);
     contractum = one_step_beta_reduction(abs3);
     BOOST_REQUIRE(contractum.has_value());
     BOOST_TEST(contractum.value() == abs3);
+
+    auto const delta = term::abs("x", make_app({x, x, x}));
+    auto const delta2 = term::app(delta, delta);
+    auto const delta3 = term::app(delta2, delta);
+    contractum = one_step_beta_reduction(delta2);
+    BOOST_REQUIRE(contractum.has_value());
+    BOOST_TEST(contractum.value() == delta3);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
