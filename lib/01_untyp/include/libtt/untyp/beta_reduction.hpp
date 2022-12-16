@@ -2,8 +2,10 @@
 
 #include "libtt/untyp/term.hpp"
 
+#include <optional>
+
 namespace libtt::untyp {
 
-term one_step_beta_reduction(term const&);
+std::optional<term> one_step_beta_reduction(term const&);
 
 }

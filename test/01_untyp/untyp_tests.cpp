@@ -414,13 +414,40 @@ BOOST_AUTO_TEST_CASE(one_step_beta_reduction_tests)
     auto const y = term::var("y");
     auto const z = term::var("z");
 
+    auto contractum = one_step_beta_reduction(x);
+    BOOST_TEST(not contractum.has_value());
+
+    contractum = one_step_beta_reduction(term::app(x, x));
+    BOOST_TEST(not contractum.has_value());
+
+    contractum = one_step_beta_reduction(term::abs("x", x));
+    BOOST_TEST(not contractum.has_value());
+
     auto const abs1 = term::abs("x", term::app(term::abs("y", term::app(y, x)), z));
     auto const app1 = term::app(abs1, v);
-    BOOST_TEST(one_step_beta_reduction(app1) == term::app(term::abs("y", term::app(y, v)), z));
+    contractum = one_step_beta_reduction(app1);
+    BOOST_REQUIRE(contractum.has_value());
+    BOOST_TEST(contractum.value() == term::app(term::abs("y", term::app(y, v)), z));
 
     auto const abs2 = term::abs("x", term::app(x, x));
     auto const app2 = term::app(abs2, abs2);
-    BOOST_TEST(one_step_beta_reduction(app2) == app2);
+    contractum = one_step_beta_reduction(app2);
+    BOOST_REQUIRE(contractum.has_value());
+    BOOST_TEST(contractum.value() == app2);
+
+    auto const app3_1 = term::app(x, app2);
+    auto const app3_2 = term::app(app2, x);
+    contractum = one_step_beta_reduction(app3_1);
+    BOOST_REQUIRE(contractum.has_value());
+    BOOST_TEST(contractum.value() == app3_1);
+    contractum = one_step_beta_reduction(app3_2);
+    BOOST_REQUIRE(contractum.has_value());
+    BOOST_TEST(contractum.value() == app3_2);
+
+    auto const abs3 = term::abs("x", app2);
+    contractum = one_step_beta_reduction(abs3);
+    BOOST_REQUIRE(contractum.has_value());
+    BOOST_TEST(contractum.value() == abs3);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
