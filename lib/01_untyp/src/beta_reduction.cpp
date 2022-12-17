@@ -117,21 +117,22 @@ static std::optional<term> beta_reduction(term::app_t const& x)
     };
 
     auto all_possible_reductions = one_step_beta_reduction(x);
-    // remove all "non-viable" reductions; a reduction is "viable" if:
-    //  - it reduces the total number of reduxes
-    //  - or the original term does not appear again inside that reduction
+    // Remove all "non-viable" reductions; a reduction is "viable" if:
+    //  - it reduces the total number of reduxes;
+    //  - or the original term does not appear again inside that reduction.
     std::erase_if(
         all_possible_reductions,
         [total_reduxes, &appears_again_inside] (term const& y)
         {
             return num_reduxes(y) >= total_reduxes and appears_again_inside(y);
         });
-    // ...so now we have some reductions which are valid...
-    // ...if any of them contains no further reduxes that's an outcome and can be returned
+    // So now we have some viable reductions; if any of them reduces to a final outcome, by Church-Russer Theorem,
+    // that is the only outcome regardless of the order in which reductions are carried out. So we can pick any of them.
+    // In particular, if anything is already in beta-normal form, that is the final outcome.
     for (auto const& r: all_possible_reductions)
-        if (num_reduxes(r) == 0ul)
+        if (is_beta_normal(r))
             return r;
-    // ...otherwise try reducing further; if anything succeeds that's an outcome
+    // Otherwise try reducing further; if anything succeeds that's the outcome.
     for (auto const& r: all_possible_reductions)
         if (auto outcome = beta_reduction(r))
             return std::move(*outcome);
