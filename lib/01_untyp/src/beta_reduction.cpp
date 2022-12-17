@@ -1,38 +1,156 @@
 #include "libtt/untyp/beta_reduction.hpp"
 
+#include "libtt/untyp/alpha_equivalence.hpp"
 #include "libtt/untyp/substitute.hpp"
+#include "libtt/untyp/subterms.hpp"
+
+#include <algorithm>
 
 namespace libtt::untyp {
 
-std::optional<term> one_step_beta_reduction(term const& x)
+// is_redux
+
+static bool is_redux(term::var_t const&)
 {
-    struct visitor
+    return false;
+}
+
+static bool is_redux(term::app_t const& x)
+{
+    return is_abs(x.left.get());
+}
+
+static bool is_redux(term::abs_t const&)
+{
+    return false;
+}
+
+bool is_redux(term const& x)
+{
+    return std::visit([] (auto const& x) { return is_redux(x); }, x.value);
+}
+
+// num_reduxes
+
+static std::size_t num_reduxes(term::var_t const& x)
+{
+    return 0ul;
+}
+
+static std::size_t num_reduxes(term::app_t const& x)
+{ 
+    return num_reduxes(x.left.get()) + num_reduxes(x.right.get()) + (is_redux(x) ? 1 : 0);
+}
+
+static std::size_t num_reduxes(term::abs_t const& x)
+{
+    return num_reduxes(x.body.get());
+}
+
+std::size_t num_reduxes(term const& x)
+{
+    return std::visit([] (auto const& x) { return num_reduxes(x); }, x.value);
+}
+
+// one_step_beta_reduction
+
+static std::vector<term> one_step_beta_reduction(term::var_t const& x)
+{
+    return {};
+}
+
+static std::vector<term> one_step_beta_reduction(term::app_t const& x)
+{
+    std::vector<term> result;
+    if (auto const* const p_abs = std::get_if<term::abs_t>(&x.left.get().value))
+        result.push_back(substitute(p_abs->body.get(), p_abs->var, x.right.get()));
+    std::ranges::transform(
+        one_step_beta_reduction(x.left.get()),
+        std::back_inserter(result),
+        [&x] (term& r) { return term::app(std::move(r), x.right.get()); }
+    );
+    std::ranges::transform(
+        one_step_beta_reduction(x.right.get()),
+        std::back_inserter(result),
+        [&x] (term& r) { return term::app(x.left.get(), std::move(r)); }
+    );
+    return result;
+}
+
+static std::vector<term> one_step_beta_reduction(term::abs_t const& x)
+{
+    std::vector<term> result;
+    std::ranges::transform(
+        one_step_beta_reduction(x.body.get()),
+        std::back_inserter(result),
+        [&x] (term& r) { return term::abs(x.var, std::move(r)); }
+    );
+    return result;
+}
+
+std::vector<term> one_step_beta_reduction(term const& x)
+{
+    return std::visit([] (auto const& x) { return one_step_beta_reduction(x); }, x.value);
+}
+
+// beta_reduction
+
+static std::optional<term> beta_reduction(term::var_t const& x)
+{
+    return term(x);
+}
+
+static std::optional<term> beta_reduction(term::app_t const& x)
+{
+    auto const total_reduxes = num_reduxes(x);
+    if (total_reduxes == 0ul)
+        return term(x);
+
+    auto const appears_again_inside = [x=term(x)] (term const& y)
     {
-        std::optional<term> operator()(term::var_t const& x)
-        {
-            return std::nullopt;
-        }
-
-        std::optional<term> operator()(term::app_t const& x)
-        {
-            if (auto const* const p_abs = std::get_if<term::abs_t>(&x.left.get().value))
-                return substitute(p_abs->body.get(), p_abs->var, x.right.get());
-            if (auto contractum = one_step_beta_reduction(x.left.get()))
-                return term::app(std::move(*contractum), x.right.get());
-            if (auto contractum = one_step_beta_reduction(x.right.get()))
-                return term::app(x.left.get(), std::move(*contractum));
-            return std::nullopt;
-        }
-
-        std::optional<term> operator()(term::abs_t const& x)
-        {
-            if (auto contractum = one_step_beta_reduction(x.body.get()))
-                return term::abs(x.var, std::move(*contractum));
-            else
-                return std::nullopt;
-        }
+        if (is_alpha_equivalent(x, y))
+            return true;
+        for (auto const& s: subterms(y))
+            if (is_alpha_equivalent(x, s))
+                return true;
+        return false;
     };
-    return std::visit(visitor{}, x.value);
+
+    auto all_possible_reductions = one_step_beta_reduction(x);
+    // remove all "non-viable" reductions; a reduction is "viable" if:
+    //  - it reduces the total number of reduxes
+    //  - or the original term does not appear again inside that reduction
+    std::erase_if(
+        all_possible_reductions,
+        [total_reduxes, &appears_again_inside] (term const& y)
+        {
+            return num_reduxes(y) >= total_reduxes and appears_again_inside(y);
+        });
+    // ...so now we have some reductions which are valid...
+    // ...if any of them contains no further reduxes that's an outcome and can be returned
+    for (auto const& r: all_possible_reductions)
+        if (num_reduxes(r) == 0ul)
+            return r;
+    // ...otherwise try reducing further; if anything succeeds that's an outcome
+    for (auto const& r: all_possible_reductions)
+        if (auto outcome = beta_reduction(r))
+            return std::move(*outcome);
+    return std::nullopt;
+}
+
+static std::optional<term> beta_reduction(term::abs_t const& x)
+{
+    if (num_reduxes(x) == 0ul)
+        return term(x);
+    else if (auto reduced_body = beta_reduction(x.body.get()))
+        return term::abs(x.var, std::move(*reduced_body));
+    else
+        return std::nullopt;
+}
+
+std::optional<term> beta_reduction(term const& x)
+{
+    return std::visit([] (auto const& x) { return beta_reduction(x); }, x.value);
 }
 
 }
