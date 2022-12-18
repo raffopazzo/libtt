@@ -194,7 +194,7 @@ BOOST_AUTO_TEST_CASE(one_step_beta_reductions_tests)
     BOOST_TEST(one_step_beta_reductions(delta2) == std::vector{delta3}, boost::test_tools::per_element{});
 }
 
-BOOST_AUTO_TEST_CASE(beta_reduction_tests)
+BOOST_AUTO_TEST_CASE(beta_normalize_tests)
 {
     using namespace libtt::untyp;
     auto const v = term::var("v");
@@ -203,31 +203,31 @@ BOOST_AUTO_TEST_CASE(beta_reduction_tests)
     auto const z = term::var("z");
     auto const xx = term::app(x, x);
 
-    BOOST_TEST(beta_reduction(x) == x);
-    BOOST_TEST(beta_reduction(xx) == xx);
-    BOOST_TEST(beta_reduction(term::abs("x", x)) == term::abs("x", x));
+    BOOST_TEST(beta_normalize(x) == x);
+    BOOST_TEST(beta_normalize(xx) == xx);
+    BOOST_TEST(beta_normalize(term::abs("x", x)) == term::abs("x", x));
 
     auto const abs1 = term::abs("x", term::app(term::abs("y", term::app(y, x)), z));
     auto const app1 = term::app(abs1, v);
-    BOOST_TEST(beta_reduction(app1) == term::app(z, v));
+    BOOST_TEST(beta_normalize(app1) == term::app(z, v));
 
     auto const omega = term::app(term::abs("x", xx), term::abs("x", xx));
-    BOOST_TEST(beta_reduction(omega) == std::nullopt);
+    BOOST_TEST(beta_normalize(omega) == std::nullopt);
 
     auto const const_v = term::abs("u", v);
     auto const app2_1 = term::app(const_v, omega);
     auto const app2_2 = term::app(omega, const_v);
-    BOOST_TEST(beta_reduction(app2_1) == v);
-    BOOST_TEST(beta_reduction(app2_2) == std::nullopt);
+    BOOST_TEST(beta_normalize(app2_1) == v);
+    BOOST_TEST(beta_normalize(app2_2) == std::nullopt);
 
     auto const delta = term::abs("x", make_app({x, x, x}));
-    BOOST_TEST(beta_reduction(term::app(delta, delta)) == std::nullopt);
+    BOOST_TEST(beta_normalize(term::app(delta, delta)) == std::nullopt);
 
     auto const app3 = term::app(term::abs("x", xx), term::app(term::abs("x", xx), const_v));
-    BOOST_TEST(beta_reduction(app3) == term::app(v, v));
+    BOOST_TEST(beta_normalize(app3) == term::app(v, v));
 
     auto const x4_combinator = term::abs("x", term::app(xx, xx));
-    BOOST_TEST(beta_reduction(term::app(x4_combinator, const_v)) == term::app(v, v));
+    BOOST_TEST(beta_normalize(term::app(x4_combinator, const_v)) == term::app(v, v));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

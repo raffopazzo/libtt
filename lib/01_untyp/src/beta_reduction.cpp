@@ -93,14 +93,14 @@ std::vector<term> one_step_beta_reductions(term const& x)
     return std::visit([] (auto const& x) { return one_step_beta_reductions(x); }, x.value);
 }
 
-// beta_reduction
+// beta_normalize
 
-static std::optional<term> beta_reduction(term::var_t const& x)
+static std::optional<term> beta_normalize(term::var_t const& x)
 {
     return term(x);
 }
 
-static std::optional<term> beta_reduction(term::app_t const& x)
+static std::optional<term> beta_normalize(term::app_t const& x)
 {
     auto const total_redexes = num_redexes(x);
     if (total_redexes == 0ul)
@@ -127,31 +127,31 @@ static std::optional<term> beta_reduction(term::app_t const& x)
             return num_redexes(y) >= total_redexes and appears_again_inside(y);
         });
     // So now we have some viable reductions; if any of them reduces to a final outcome, by Church-Rosser Theorem,
-    // that is the only outcome regardless of the order in which reductions are carried out. So we can pick any of them.
+    // that is the only outcome regardless of the order in which reductions are carried out. So we can pick any one.
     // In particular, if anything is already in beta-normal form, that is the final outcome.
     for (auto& r: all_possible_reductions)
         if (is_beta_normal(r))
             return std::move(r);
     // Otherwise try reducing further; if anything succeeds that's the outcome.
     for (auto const& r: all_possible_reductions)
-        if (auto outcome = beta_reduction(r))
+        if (auto outcome = beta_normalize(r))
             return std::move(*outcome);
     return std::nullopt;
 }
 
-static std::optional<term> beta_reduction(term::abs_t const& x)
+static std::optional<term> beta_normalize(term::abs_t const& x)
 {
     if (num_redexes(x) == 0ul)
         return term(x);
-    else if (auto reduced_body = beta_reduction(x.body.get()))
+    else if (auto reduced_body = beta_normalize(x.body.get()))
         return term::abs(x.var, std::move(*reduced_body));
     else
         return std::nullopt;
 }
 
-std::optional<term> beta_reduction(term const& x)
+std::optional<term> beta_normalize(term const& x)
 {
-    return std::visit([] (auto const& x) { return beta_reduction(x); }, x.value);
+    return std::visit([] (auto const& x) { return beta_normalize(x); }, x.value);
 }
 
 }
