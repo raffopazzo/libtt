@@ -71,7 +71,7 @@ namespace libtt::untyp
 
 BOOST_AUTO_TEST_SUITE(untyp_beta_reduction_tests)
 
-BOOST_AUTO_TEST_CASE(is_redux_tests)
+BOOST_AUTO_TEST_CASE(is_redex_tests)
 {
     using namespace libtt::untyp;
     auto const v = term::var("v");
@@ -79,40 +79,40 @@ BOOST_AUTO_TEST_CASE(is_redux_tests)
     auto const y = term::var("y");
     auto const z = term::var("z");
 
-    BOOST_TEST(not is_redux(x));
-    BOOST_TEST(not is_redux(term::app(x, x)));
-    BOOST_TEST(not is_redux(term::abs("x", x)));
+    BOOST_TEST(not is_redex(x));
+    BOOST_TEST(not is_redex(term::app(x, x)));
+    BOOST_TEST(not is_redex(term::abs("x", x)));
 
     auto const abs1 = term::abs("x", term::app(term::abs("y", term::app(y, x)), z));
     auto const app1 = term::app(abs1, v);
-    BOOST_TEST(is_redux(app1));
+    BOOST_TEST(is_redex(app1));
 
     auto const abs2 = term::abs("x", term::app(x, x));
     auto const omega = term::app(abs2, abs2);
-    BOOST_TEST(is_redux(omega));
+    BOOST_TEST(is_redex(omega));
 
     auto const app2_1 = term::app(x, omega);
     auto const app2_2 = term::app(omega, x);
-    BOOST_TEST(not is_redux(app2_1));
-    BOOST_TEST(not is_redux(app2_2));
+    BOOST_TEST(not is_redex(app2_1));
+    BOOST_TEST(not is_redex(app2_2));
 
     auto const const_v = term::abs("u", v);
     auto const app3_1 = term::app(const_v, omega);
     auto const app3_2 = term::app(omega, const_v);
-    BOOST_TEST(is_redux(app3_1));
-    BOOST_TEST(not is_redux(app3_2));
+    BOOST_TEST(is_redex(app3_1));
+    BOOST_TEST(not is_redex(app3_2));
 
     auto const abs3 = term::abs("x", omega);
-    BOOST_TEST(not is_redux(abs3));
+    BOOST_TEST(not is_redex(abs3));
 
     auto const delta = term::abs("x", make_app({x, x, x}));
     auto const delta2 = term::app(delta, delta);
     auto const delta3 = term::app(delta2, delta);
-    BOOST_TEST(is_redux(delta2));
-    BOOST_TEST(not is_redux(delta3));
+    BOOST_TEST(is_redex(delta2));
+    BOOST_TEST(not is_redex(delta3));
 }
 
-BOOST_AUTO_TEST_CASE(num_reduxes_tests)
+BOOST_AUTO_TEST_CASE(num_redexes_tests)
 {
     using namespace libtt::untyp;
     auto const v = term::var("v");
@@ -120,35 +120,35 @@ BOOST_AUTO_TEST_CASE(num_reduxes_tests)
     auto const y = term::var("y");
     auto const z = term::var("z");
 
-    BOOST_TEST(num_reduxes(x) == 0ul);
-    BOOST_TEST(num_reduxes(term::app(x, x)) == 0ul);
-    BOOST_TEST(num_reduxes(term::abs("x", x)) == 0ul);
+    BOOST_TEST(num_redexes(x) == 0ul);
+    BOOST_TEST(num_redexes(term::app(x, x)) == 0ul);
+    BOOST_TEST(num_redexes(term::abs("x", x)) == 0ul);
 
     auto const abs1 = term::abs("x", term::app(term::abs("y", term::app(y, x)), z));
     auto const app1 = term::app(abs1, v);
-    BOOST_TEST(num_reduxes(app1) == 2ul);
+    BOOST_TEST(num_redexes(app1) == 2ul);
 
     auto const abs2 = term::abs("x", term::app(x, x));
     auto const omega = term::app(abs2, abs2);
-    BOOST_TEST(num_reduxes(omega) == 1ul);
+    BOOST_TEST(num_redexes(omega) == 1ul);
 
     auto const app2_1 = term::app(x, omega);
     auto const app2_2 = term::app(omega, x);
-    BOOST_TEST(num_reduxes(app2_1) == 1ul);
-    BOOST_TEST(num_reduxes(app2_2) == 1ul);
+    BOOST_TEST(num_redexes(app2_1) == 1ul);
+    BOOST_TEST(num_redexes(app2_2) == 1ul);
 
     auto const const_v = term::abs("u", v);
     auto const app3_1 = term::app(const_v, omega);
     auto const app3_2 = term::app(omega, const_v);
-    BOOST_TEST(num_reduxes(app3_1) == 2ul);
+    BOOST_TEST(num_redexes(app3_1) == 2ul);
 
     auto const abs3 = term::abs("x", omega);
-    BOOST_TEST(num_reduxes(abs3) == 1ul);
+    BOOST_TEST(num_redexes(abs3) == 1ul);
 
     auto const delta = term::abs("x", make_app({x, x, x}));
     auto const delta2 = term::app(delta, delta);
     auto const delta3 = term::app(delta2, delta);
-    BOOST_TEST(num_reduxes(delta2) == 1ul);
+    BOOST_TEST(num_redexes(delta2) == 1ul);
 }
 
 BOOST_AUTO_TEST_CASE(one_step_beta_reduction_tests)
