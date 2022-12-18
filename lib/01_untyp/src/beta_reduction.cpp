@@ -103,32 +103,29 @@ static std::optional<term> beta_normalize(term::var_t const& x)
 
 static std::optional<term> beta_normalize(term::app_t const& x)
 {
-    auto const total_redexes = num_redexes(x);
-    if (total_redexes == 0ul)
-        return term(x);
-
-    auto const appears_again_inside = [x=term(x)] (term const& y) { return is_subterm_of(x, y); };
-
-    auto all_possible_reductions = one_step_beta_reductions(x);
-    // Remove all "non-viable" reductions; a reduction is "viable" if:
-    //  - it reduces the total number of redexes;
-    //  - or the original term does not appear again inside that reduction.
-    std::erase_if(
-        all_possible_reductions,
-        [total_redexes, &appears_again_inside] (term const& y)
+    auto const orig = term(x);
+    if (is_beta_normal(orig))
+        return orig;
+    std::list<term> all_possible_reductions{orig};
+    auto const append = [&all_possible_reductions] (term&& r) { all_possible_reductions.push_back(std::move(r)); };
+    do
+    {
+        auto& curr = all_possible_reductions.front();
+        auto const curr_redexes = num_redexes(curr);
+        for (auto& r: one_step_beta_reductions(curr))
         {
-            return num_redexes(y) >= total_redexes and appears_again_inside(y);
-        });
-    // So now we have some viable reductions; if any of them reduces to a final outcome, by Church-Rosser Theorem,
-    // that is the only outcome regardless of the order in which reductions are carried out. So we can pick any one.
-    // In particular, if anything is already in beta-normal form, that is the final outcome.
-    for (auto& r: all_possible_reductions)
-        if (is_beta_normal(r))
-            return std::move(r);
-    // Otherwise try reducing further; if anything succeeds that's the outcome.
-    for (auto const& r: all_possible_reductions)
-        if (auto outcome = beta_normalize(r))
-            return std::move(*outcome);
+            auto const new_redexes = num_redexes(r);
+            if (new_redexes == 0ul)
+                return std::move(r);
+            else if (new_redexes < curr_redexes)
+                append(std::move(r));
+            else if (is_subterm_of(curr, r) or is_subterm_of(orig, r))
+                continue; // discard reductions along an infinite path
+            else
+                append(std::move(r));
+        }
+        all_possible_reductions.pop_front();
+    } while(not all_possible_reductions.empty());
     return std::nullopt;
 }
 
@@ -178,10 +175,14 @@ boost::logic::tribool is_beta_equivalent(term const& x, term const& y)
     auto const& reduct_y = beta_normalize(y);
     if (reduct_x and reduct_y)
         return *reduct_x == *reduct_y;
-    else if (reduct_x.has_value() != reduct_y.has_value())
+    if (reduct_x.has_value() != reduct_y.has_value())
         return false;
-    else
-        return boost::logic::indeterminate;
+    // at this point we know that both contain an infinite reduction path; the best we can do is apply some heuristics
+    if (beta_reduces_to(x, y) or beta_reduces_to(y, x))
+        // for instance, one might reduce to the other
+        return true;
+    // TODO: add more heuristics...
+    return boost::logic::indeterminate;
 }
 
 }

@@ -8,6 +8,7 @@ add_library(libtt_untyp_lib
   include/libtt/untyp/substitute.hpp
   include/libtt/untyp/subterms.hpp
   include/libtt/untyp/term.hpp
+  include/libtt/untyp/y_combinator.hpp
   include/libtt/untyp.hpp
   src/detail/tmp_var_generator.cpp
   src/alpha_equivalence.cpp
@@ -18,6 +19,7 @@ add_library(libtt_untyp_lib
   src/substitute.cpp
   src/subterms.cpp
   src/term.cpp
+  src/y_combinator.cpp
   src/untyp.cpp
   )
 add_library(libtt::untyp ALIAS libtt_untyp_lib)

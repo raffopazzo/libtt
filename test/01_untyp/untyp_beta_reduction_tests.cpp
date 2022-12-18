@@ -2,6 +2,7 @@
 #include <boost/test/included/unit_test.hpp>
 
 #include "libtt/untyp/beta_reduction.hpp"
+#include "libtt/untyp/y_combinator.hpp"
 
 template <typename R, typename T>
 bool contains(R const& r, T const& x)
@@ -228,6 +229,10 @@ BOOST_AUTO_TEST_CASE(beta_normalize_tests)
 
     auto const x4_combinator = term::abs("x", term::app(xx, xx));
     BOOST_TEST(beta_normalize(term::app(x4_combinator, const_v)) == term::app(v, v));
+
+    auto const id = term::abs("u", term::var("u"));
+    auto const half = term::abs("x", term::app(id, xx));
+    BOOST_TEST(beta_normalize(term::app(half, half)) == std::nullopt);
 }
 
 BOOST_AUTO_TEST_CASE(beta_reduces_to_tests)
@@ -352,6 +357,19 @@ BOOST_AUTO_TEST_CASE(is_beta_equivalent_tests)
 
     auto const x4_combinator = term::abs("x", term::app(xx, xx));
     BOOST_TEST(static_cast<bool>(is_beta_equivalent(term::app(x4_combinator, const_v), term::app(v, v))));
+}
+
+BOOST_AUTO_TEST_CASE(y_combinator_tests)
+{
+    using namespace libtt::untyp;
+    auto const id = term::abs("u", term::var("u"));
+    auto const x = term::var("x");
+    auto const xx = term::app(x, x);
+    auto const omega = term::app(term::abs("x", xx), term::abs("x", xx));
+
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(y_combinator(id), omega)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(omega, y_combinator(id))));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(y_combinator(id), omega)));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
