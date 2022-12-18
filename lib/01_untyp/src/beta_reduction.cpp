@@ -129,9 +129,9 @@ static std::optional<term> beta_reduction(term::app_t const& x)
     // So now we have some viable reductions; if any of them reduces to a final outcome, by Church-Rosser Theorem,
     // that is the only outcome regardless of the order in which reductions are carried out. So we can pick any of them.
     // In particular, if anything is already in beta-normal form, that is the final outcome.
-    for (auto const& r: all_possible_reductions)
+    for (auto& r: all_possible_reductions)
         if (is_beta_normal(r))
-            return r;
+            return std::move(r);
     // Otherwise try reducing further; if anything succeeds that's the outcome.
     for (auto const& r: all_possible_reductions)
         if (auto outcome = beta_reduction(r))
