@@ -1,8 +1,5 @@
 #include "libtt/untyp/alpha_equivalence.hpp"
 
-#include "libtt/untyp/rename.hpp"
-#include "libtt/untyp/replace.hpp"
-
 #include <type_traits>
 
 namespace libtt::untyp {

@@ -3,24 +3,16 @@ add_library(libtt_untyp_lib
   include/libtt/untyp/alpha_equivalence.hpp
   include/libtt/untyp/beta_reduction.hpp
   include/libtt/untyp/pretty_print.hpp
-  include/libtt/untyp/rename.hpp
-  include/libtt/untyp/replace.hpp
-  include/libtt/untyp/substitute.hpp
   include/libtt/untyp/subterms.hpp
   include/libtt/untyp/term.hpp
   include/libtt/untyp/y_combinator.hpp
-  include/libtt/untyp.hpp
   src/detail/tmp_var_generator.cpp
   src/alpha_equivalence.cpp
   src/beta_reduction.cpp
   src/pretty_print.cpp
-  src/rename.cpp
-  src/replace.cpp
-  src/substitute.cpp
   src/subterms.cpp
   src/term.cpp
   src/y_combinator.cpp
-  src/untyp.cpp
   )
 add_library(libtt::untyp ALIAS libtt_untyp_lib)
 

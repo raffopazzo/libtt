@@ -59,4 +59,10 @@ std::set<term::var_t> free_variables(term const&);
 std::set<term::var_t> binding_variables(term const&);
 std::set<term::var_t> binding_and_free_variables(term const&);
 
+term::abs_t rename(term::abs_t const&, std::set<term::var_t> const& forbidden_names = {});
+
+term replace(term const&, term::var_t const& from, term::var_t const& to);
+
+term substitute(term const& x, term::var_t const& var, term const& y);
+
 }

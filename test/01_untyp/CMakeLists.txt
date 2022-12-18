@@ -1,6 +1,10 @@
-add_executable(untyp_tests untyp_tests.cpp)
-add_test(NAME untyp_tests COMMAND untyp_tests)
-target_link_libraries(untyp_tests PUBLIC libtt::untyp)
+add_executable(untyp_term_tests untyp_term_tests.cpp)
+add_test(NAME untyp_term_tests COMMAND untyp_term_tests)
+target_link_libraries(untyp_term_tests PUBLIC libtt::untyp)
+
+add_executable(untyp_alpha_equivalence_tests untyp_alpha_equivalence_tests.cpp)
+add_test(NAME untyp_alpha_equivalence_tests COMMAND untyp_alpha_equivalence_tests)
+target_link_libraries(untyp_alpha_equivalence_tests PUBLIC libtt::untyp)
 
 add_executable(untyp_beta_reduction_tests untyp_beta_reduction_tests.cpp)
 add_test(NAME untyp_beta_reduction_tests COMMAND untyp_beta_reduction_tests)

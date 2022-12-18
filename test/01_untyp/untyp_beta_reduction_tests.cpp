@@ -4,6 +4,8 @@
 #include "libtt/untyp/beta_reduction.hpp"
 #include "libtt/untyp/y_combinator.hpp"
 
+#include "libtt/untyp/pretty_print.hpp"
+
 template <typename R, typename T>
 bool contains(R const& r, T const& x)
 {
@@ -29,52 +31,27 @@ namespace std
 
 namespace libtt::untyp
 {
-    std::ostream& operator<<(std::ostream&, term const&);
-    std::ostream& operator<<(std::ostream&, term::var_t const&);
-    std::ostream& operator<<(std::ostream&, term::app_t const&);
-    std::ostream& operator<<(std::ostream&, term::abs_t const&);
-
     std::ostream& operator<<(std::ostream& os, term const& x)
     {
-	return std::visit([&os] (auto const& y) -> std::ostream& { return os << y; }, x.value);
+        return pretty_print(os, x);
     }
-    std::ostream& operator<<(std::ostream& os, term::var_t const& x)
-    {
-        return os << x.name;
-    }
-    std::ostream& operator<<(std::ostream& os, term::app_t const& x)
-    {
-        return os << '(' << x.left.get() << ' ' << x.right.get() << ')';
-    }
-    std::ostream& operator<<(std::ostream& os, term::abs_t const& x)
-    {
-        return os << "(lambda " << x.var << " . "<< x.body.get() << ')';
-    }
+}
 
-    static term make_app(std::vector<term> xs)
-    {
-        auto it = xs.begin();
-        auto rv = *it++;
-        while (it != xs.end())
-            rv = term::app(rv, *it++);
-        return rv;
-    }
+using namespace libtt::untyp;
 
-    static term make_abs(std::vector<std::string> vars, term body)
-    {
-        auto it = vars.rbegin();
-        auto rv = term::abs(*it++, body);
-        while (it != vars.rend())
-            rv = term::abs(*it++, rv);
-        return rv;
-    }
+static term make_app(std::vector<term> xs)
+{
+    auto it = xs.begin();
+    auto rv = *it++;
+    while (it != xs.end())
+        rv = term::app(rv, *it++);
+    return rv;
 }
 
 BOOST_AUTO_TEST_SUITE(untyp_beta_reduction_tests)
 
 BOOST_AUTO_TEST_CASE(is_redex_tests)
 {
-    using namespace libtt::untyp;
     auto const v = term::var("v");
     auto const x = term::var("x");
     auto const y = term::var("y");
@@ -115,7 +92,6 @@ BOOST_AUTO_TEST_CASE(is_redex_tests)
 
 BOOST_AUTO_TEST_CASE(num_redexes_tests)
 {
-    using namespace libtt::untyp;
     auto const v = term::var("v");
     auto const x = term::var("x");
     auto const y = term::var("y");
@@ -154,7 +130,6 @@ BOOST_AUTO_TEST_CASE(num_redexes_tests)
 
 BOOST_AUTO_TEST_CASE(one_step_beta_reductions_tests)
 {
-    using namespace libtt::untyp;
     auto const v = term::var("v");
     auto const x = term::var("x");
     auto const y = term::var("y");
@@ -197,7 +172,6 @@ BOOST_AUTO_TEST_CASE(one_step_beta_reductions_tests)
 
 BOOST_AUTO_TEST_CASE(beta_normalize_tests)
 {
-    using namespace libtt::untyp;
     auto const v = term::var("v");
     auto const x = term::var("x");
     auto const y = term::var("y");
@@ -237,7 +211,6 @@ BOOST_AUTO_TEST_CASE(beta_normalize_tests)
 
 BOOST_AUTO_TEST_CASE(beta_reduces_to_tests)
 {
-    using namespace libtt::untyp;
     auto const v = term::var("v");
     auto const x = term::var("x");
     auto const y = term::var("y");
@@ -302,7 +275,6 @@ BOOST_AUTO_TEST_CASE(beta_reduces_to_tests)
 
 BOOST_AUTO_TEST_CASE(is_beta_equivalent_tests)
 {
-    using namespace libtt::untyp;
     auto const v = term::var("v");
     auto const x = term::var("x");
     auto const y = term::var("y");
@@ -361,7 +333,6 @@ BOOST_AUTO_TEST_CASE(is_beta_equivalent_tests)
 
 BOOST_AUTO_TEST_CASE(y_combinator_tests)
 {
-    using namespace libtt::untyp;
     auto const id = term::abs("u", term::var("u"));
     auto const x = term::var("x");
     auto const xx = term::app(x, x);

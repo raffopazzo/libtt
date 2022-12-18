@@ -1,7 +1,5 @@
 #include "libtt/untyp/y_combinator.hpp"
 
-#include "libtt/untyp/substitute.hpp"
-
 namespace libtt::untyp {
 
 term y_combinator(term const& x)

@@ -18,14 +18,14 @@ struct subterms_visitor
     void operator()(term::app_t const& x)
     {
 	acc.emplace_back(x);
-	std::visit(subterms_visitor{acc}, x.left.get().value);
-	std::visit(subterms_visitor{acc}, x.right.get().value);
+	std::visit(*this, x.left.get().value);
+	std::visit(*this, x.right.get().value);
     }
 
     void operator()(term::abs_t const& x)
     {
 	acc.emplace_back(x);
-	std::visit(subterms_visitor{acc}, x.body.get().value);
+	std::visit(*this, x.body.get().value);
     }
 };
 

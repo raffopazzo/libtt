@@ -1,7 +1,6 @@
 #include "libtt/untyp/beta_reduction.hpp"
 
 #include "libtt/untyp/alpha_equivalence.hpp"
-#include "libtt/untyp/substitute.hpp"
 #include "libtt/untyp/subterms.hpp"
 
 #include <algorithm>
