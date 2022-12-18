@@ -141,6 +141,35 @@ BOOST_AUTO_TEST_CASE(proper_subterms_tests)
     BOOST_TEST(libtt::untyp::proper_subterms(app3) == expected, boost::test_tools::per_element{});
 }
 
+BOOST_AUTO_TEST_CASE(is_subterm_of_tests)
+{
+    using namespace libtt::untyp;
+    auto const x = term::var("x");
+    auto const y = term::var("y");
+    auto const z = term::var("z");
+    auto const app1 = term::app(x, y);
+    auto const app2 = term::app(x, x);
+    auto const abs1 = term::abs("x", app1);
+    auto const abs2 = term::abs("y", abs1);
+    BOOST_TEST(is_subterm_of(x,x));
+    BOOST_TEST(not is_subterm_of(x, y));
+    BOOST_TEST(is_subterm_of(app1, app1));
+    BOOST_TEST(is_subterm_of(x, app1));
+    BOOST_TEST(is_subterm_of(y, app1));
+    BOOST_TEST(is_subterm_of(app2, app2));
+    BOOST_TEST(is_subterm_of(x, app2));
+    BOOST_TEST(not is_subterm_of(y, app2));
+    BOOST_TEST(is_subterm_of(abs1, abs1));
+    BOOST_TEST(is_subterm_of(term::abs("z", term::app(z, y)), abs1));
+    BOOST_TEST(is_subterm_of(abs2, abs2));
+    BOOST_TEST(is_subterm_of(term::abs("z", term::app(z, y)), abs2));
+    BOOST_TEST(is_subterm_of(term::abs("x", term::abs("y", term::app(y, x))), abs2));
+    BOOST_TEST(is_subterm_of(term::abs("x", term::abs("z", term::app(z, x))), abs2));
+    BOOST_TEST(is_subterm_of(term::abs("z", term::abs("y", term::app(y, z))), abs2));
+    BOOST_TEST(is_subterm_of(term::abs("z", term::app(z, y)), abs2));
+    BOOST_TEST(is_subterm_of(abs1, abs2));
+}
+
 BOOST_AUTO_TEST_CASE(pretty_printer_tests)
 {
     auto const x = libtt::untyp::term::var("x");

@@ -1,5 +1,9 @@
 #include "libtt/untyp/subterms.hpp"
 
+#include "libtt/untyp/alpha_equivalence.hpp"
+
+#include <algorithm>
+
 namespace libtt::untyp {
 
 struct subterms_visitor
@@ -57,6 +61,11 @@ std::vector<term> proper_subterms(term const& x)
     std::vector<term> acc;
     std::visit(proper_subterms_visitor{acc}, x.value);
     return acc;
+}
+
+bool is_subterm_of(term const& x, term const& y)
+{
+    return std::ranges::any_of(subterms(y), [&x] (auto const& w) { return is_alpha_equivalent(x, w);});
 }
 
 }
