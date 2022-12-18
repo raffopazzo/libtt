@@ -126,7 +126,7 @@ static std::optional<term> beta_reduction(term::app_t const& x)
         {
             return num_redexes(y) >= total_redexes and appears_again_inside(y);
         });
-    // So now we have some viable reductions; if any of them reduces to a final outcome, by Church-Russer Theorem,
+    // So now we have some viable reductions; if any of them reduces to a final outcome, by Church-Rosser Theorem,
     // that is the only outcome regardless of the order in which reductions are carried out. So we can pick any of them.
     // In particular, if anything is already in beta-normal form, that is the final outcome.
     for (auto const& r: all_possible_reductions)
