@@ -230,4 +230,128 @@ BOOST_AUTO_TEST_CASE(beta_normalize_tests)
     BOOST_TEST(beta_normalize(term::app(x4_combinator, const_v)) == term::app(v, v));
 }
 
+BOOST_AUTO_TEST_CASE(beta_reduces_to_tests)
+{
+    using namespace libtt::untyp;
+    auto const v = term::var("v");
+    auto const x = term::var("x");
+    auto const y = term::var("y");
+    auto const z = term::var("z");
+    auto const xx = term::app(x, x);
+
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(x, x)));
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(xx, xx)));
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(term::abs("x", x), term::abs("x", x))));
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(term::abs("x", x), term::abs("y", y))));
+
+    auto const abs1 = term::abs("x", term::app(term::abs("y", term::app(y, x)), z));
+    auto const abs1_1 = term::app(term::abs("y", term::app(y, v)), z);
+    auto const abs1_2 = term::app(term::abs("x", term::app(z, x)), v);
+    auto const app1 = term::app(abs1, v);
+    auto const zv = term::app(z, v);
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(app1, zv)));
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(app1, abs1_1)));
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(app1, abs1_2)));
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(abs1_1, zv)));
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(abs1_2, zv)));
+    BOOST_TEST(not static_cast<bool>(beta_reduces_to(abs1_1, abs1_2)));
+    BOOST_TEST(not static_cast<bool>(beta_reduces_to(abs1_2, abs1_1)));
+    BOOST_TEST(not static_cast<bool>(beta_reduces_to(abs1_1, app1)));
+    BOOST_TEST(not static_cast<bool>(beta_reduces_to(abs1_2, app1)));
+    BOOST_TEST(not static_cast<bool>(beta_reduces_to(zv, app1)));
+    BOOST_TEST(not static_cast<bool>(beta_reduces_to(zv, abs1_1)));
+    BOOST_TEST(not static_cast<bool>(beta_reduces_to(zv, abs1_2)));
+
+    auto const omega = term::app(term::abs("x", xx), term::abs("x", xx));
+    auto const yy = term::app(y, y);
+    auto const omega2 = term::app(term::abs("y", yy), term::abs("y", yy));
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(omega, omega)));
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(omega, omega2)));
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(omega2, omega)));
+    BOOST_TEST(not static_cast<bool>(beta_reduces_to(omega, x)));
+
+    auto const const_v = term::abs("u", v);
+    auto const app2_1 = term::app(const_v, omega);
+    auto const app2_2 = term::app(omega, const_v);
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(app2_1, v)));
+    BOOST_TEST(not static_cast<bool>(beta_reduces_to(v, app2_1)));
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(app2_2, app2_2)));
+    BOOST_TEST(boost::logic::indeterminate(beta_reduces_to(app2_2, omega)));
+    BOOST_TEST(boost::logic::indeterminate(beta_reduces_to(omega, app2_2)));
+
+    auto const delta = term::abs("x", make_app({x, x, x}));
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(delta, delta)));
+    BOOST_TEST(not static_cast<bool>(beta_reduces_to(delta, omega)));
+    BOOST_TEST(not static_cast<bool>(beta_reduces_to(omega, delta)));
+    BOOST_TEST(boost::logic::indeterminate(beta_reduces_to(term::app(delta, delta), omega)));
+    BOOST_TEST(boost::logic::indeterminate(beta_reduces_to(omega, term::app(delta, delta))));
+
+    auto const app3 = term::app(term::abs("x", xx), term::app(term::abs("x", xx), const_v));
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(app3, term::app(v, v))));
+    BOOST_TEST(not static_cast<bool>(beta_reduces_to(term::app(v, v), app3)));
+
+    auto const x4_combinator = term::abs("x", term::app(xx, xx));
+    BOOST_TEST(static_cast<bool>(beta_reduces_to(term::app(x4_combinator, const_v), term::app(v, v))));
+    BOOST_TEST(not static_cast<bool>(beta_reduces_to(term::app(v, v), term::app(x4_combinator, const_v))));
+}
+
+BOOST_AUTO_TEST_CASE(is_beta_equivalent_tests)
+{
+    using namespace libtt::untyp;
+    auto const v = term::var("v");
+    auto const x = term::var("x");
+    auto const y = term::var("y");
+    auto const z = term::var("z");
+    auto const xx = term::app(x, x);
+
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(x, x)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(xx, xx)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(term::abs("x", x), term::abs("x", x))));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(term::abs("x", x), term::abs("y", y))));
+
+    auto const abs1 = term::abs("x", term::app(term::abs("y", term::app(y, x)), z));
+    auto const abs1_1 = term::app(term::abs("y", term::app(y, v)), z);
+    auto const abs1_2 = term::app(term::abs("x", term::app(z, x)), v);
+    auto const app1 = term::app(abs1, v);
+    auto const zv = term::app(z, v);
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(app1, zv)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(app1, abs1_1)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(app1, abs1_2)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(abs1_1, abs1_2)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(abs1_2, abs1_1)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(abs1_1, app1)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(abs1_2, app1)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(abs1_1, zv)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(abs1_2, zv)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(zv, abs1_1)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(zv, abs1_2)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(zv, app1)));
+
+    auto const omega = term::app(term::abs("x", xx), term::abs("x", xx));
+    auto const yy = term::app(y, y);
+    auto const omega2 = term::app(term::abs("y", yy), term::abs("y", yy));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(omega, omega)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(omega, omega2)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(omega2, omega)));
+    BOOST_TEST(not static_cast<bool>(is_beta_equivalent(omega, x)));
+
+    auto const const_v = term::abs("u", v);
+    auto const app2_1 = term::app(const_v, omega);
+    auto const app2_2 = term::app(omega, const_v);
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(app2_1, v)));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(app2_2, app2_2)));
+    BOOST_TEST(boost::logic::indeterminate(is_beta_equivalent(app2_2, omega)));
+
+    auto const delta = term::abs("x", make_app({x, x, x}));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(delta, delta)));
+    BOOST_TEST(not static_cast<bool>(is_beta_equivalent(delta, omega)));
+    BOOST_TEST(boost::logic::indeterminate(is_beta_equivalent(term::app(delta, delta), omega)));
+
+    auto const app3 = term::app(term::abs("x", xx), term::app(term::abs("x", xx), const_v));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(app3, term::app(v, v))));
+
+    auto const x4_combinator = term::abs("x", term::app(xx, xx));
+    BOOST_TEST(static_cast<bool>(is_beta_equivalent(term::app(x4_combinator, const_v), term::app(v, v))));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

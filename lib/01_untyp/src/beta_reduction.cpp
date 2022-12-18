@@ -5,6 +5,7 @@
 #include "libtt/untyp/subterms.hpp"
 
 #include <algorithm>
+#include <list>
 
 namespace libtt::untyp {
 
@@ -106,15 +107,7 @@ static std::optional<term> beta_normalize(term::app_t const& x)
     if (total_redexes == 0ul)
         return term(x);
 
-    auto const appears_again_inside = [x=term(x)] (term const& y)
-    {
-        if (is_alpha_equivalent(x, y))
-            return true;
-        for (auto const& s: subterms(y))
-            if (is_alpha_equivalent(x, s))
-                return true;
-        return false;
-    };
+    auto const appears_again_inside = [x=term(x)] (term const& y) { return is_subterm_of(x, y); };
 
     auto all_possible_reductions = one_step_beta_reductions(x);
     // Remove all "non-viable" reductions; a reduction is "viable" if:
@@ -154,4 +147,42 @@ std::optional<term> beta_normalize(term const& x)
     return std::visit([] (auto const& x) { return beta_normalize(x); }, x.value);
 }
 
+boost::logic::tribool beta_reduces_to(term const& x, term const& y)
+{
+    bool has_infinite_recursion_path = false;
+    std::list<term> candidates{x};
+    do
+    {
+        if (is_alpha_equivalent(candidates.front(), y))
+            return true;
+        for (auto& r: one_step_beta_reductions(candidates.front()))
+        {
+            if (not is_subterm_of(candidates.front(), r))
+                candidates.push_back(std::move(r));
+            else
+                has_infinite_recursion_path = true;
+        }
+        candidates.pop_front();
+    } while (not candidates.empty());
+    if (has_infinite_recursion_path)
+        return boost::logic::indeterminate;
+    else
+        return false;
 }
+
+boost::logic::tribool is_beta_equivalent(term const& x, term const& y)
+{
+    if (is_alpha_equivalent(x, y))
+        return true;
+    auto const& reduct_x = beta_normalize(x);
+    auto const& reduct_y = beta_normalize(y);
+    if (reduct_x and reduct_y)
+        return *reduct_x == *reduct_y;
+    else if (reduct_x.has_value() != reduct_y.has_value())
+        return false;
+    else
+        return boost::logic::indeterminate;
+}
+
+}
+
