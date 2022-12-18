@@ -8,48 +8,48 @@
 
 namespace libtt::untyp {
 
-// is_redux
+// is_redex
 
-static bool is_redux(term::var_t const&)
+static bool is_redex(term::var_t const&)
 {
     return false;
 }
 
-static bool is_redux(term::app_t const& x)
+static bool is_redex(term::app_t const& x)
 {
     return is_abs(x.left.get());
 }
 
-static bool is_redux(term::abs_t const&)
+static bool is_redex(term::abs_t const&)
 {
     return false;
 }
 
-bool is_redux(term const& x)
+bool is_redex(term const& x)
 {
-    return std::visit([] (auto const& x) { return is_redux(x); }, x.value);
+    return std::visit([] (auto const& x) { return is_redex(x); }, x.value);
 }
 
-// num_reduxes
+// num_redexes
 
-static std::size_t num_reduxes(term::var_t const& x)
+static std::size_t num_redexes(term::var_t const& x)
 {
     return 0ul;
 }
 
-static std::size_t num_reduxes(term::app_t const& x)
+static std::size_t num_redexes(term::app_t const& x)
 { 
-    return num_reduxes(x.left.get()) + num_reduxes(x.right.get()) + (is_redux(x) ? 1 : 0);
+    return num_redexes(x.left.get()) + num_redexes(x.right.get()) + (is_redex(x) ? 1 : 0);
 }
 
-static std::size_t num_reduxes(term::abs_t const& x)
+static std::size_t num_redexes(term::abs_t const& x)
 {
-    return num_reduxes(x.body.get());
+    return num_redexes(x.body.get());
 }
 
-std::size_t num_reduxes(term const& x)
+std::size_t num_redexes(term const& x)
 {
-    return std::visit([] (auto const& x) { return num_reduxes(x); }, x.value);
+    return std::visit([] (auto const& x) { return num_redexes(x); }, x.value);
 }
 
 // one_step_beta_reduction
@@ -102,8 +102,8 @@ static std::optional<term> beta_reduction(term::var_t const& x)
 
 static std::optional<term> beta_reduction(term::app_t const& x)
 {
-    auto const total_reduxes = num_reduxes(x);
-    if (total_reduxes == 0ul)
+    auto const total_redexes = num_redexes(x);
+    if (total_redexes == 0ul)
         return term(x);
 
     auto const appears_again_inside = [x=term(x)] (term const& y)
@@ -118,13 +118,13 @@ static std::optional<term> beta_reduction(term::app_t const& x)
 
     auto all_possible_reductions = one_step_beta_reduction(x);
     // Remove all "non-viable" reductions; a reduction is "viable" if:
-    //  - it reduces the total number of reduxes;
+    //  - it reduces the total number of redexes;
     //  - or the original term does not appear again inside that reduction.
     std::erase_if(
         all_possible_reductions,
-        [total_reduxes, &appears_again_inside] (term const& y)
+        [total_redexes, &appears_again_inside] (term const& y)
         {
-            return num_reduxes(y) >= total_reduxes and appears_again_inside(y);
+            return num_redexes(y) >= total_redexes and appears_again_inside(y);
         });
     // So now we have some viable reductions; if any of them reduces to a final outcome, by Church-Russer Theorem,
     // that is the only outcome regardless of the order in which reductions are carried out. So we can pick any of them.
@@ -141,7 +141,7 @@ static std::optional<term> beta_reduction(term::app_t const& x)
 
 static std::optional<term> beta_reduction(term::abs_t const& x)
 {
-    if (num_reduxes(x) == 0ul)
+    if (num_redexes(x) == 0ul)
         return term(x);
     else if (auto reduced_body = beta_reduction(x.body.get()))
         return term::abs(x.var, std::move(*reduced_body));
