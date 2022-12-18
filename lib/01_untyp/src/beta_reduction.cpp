@@ -52,45 +52,45 @@ std::size_t num_redexes(term const& x)
     return std::visit([] (auto const& x) { return num_redexes(x); }, x.value);
 }
 
-// one_step_beta_reduction
+// one_step_beta_reductions
 
-static std::vector<term> one_step_beta_reduction(term::var_t const& x)
+static std::vector<term> one_step_beta_reductions(term::var_t const& x)
 {
     return {};
 }
 
-static std::vector<term> one_step_beta_reduction(term::app_t const& x)
+static std::vector<term> one_step_beta_reductions(term::app_t const& x)
 {
     std::vector<term> result;
     if (auto const* const p_abs = std::get_if<term::abs_t>(&x.left.get().value))
         result.push_back(substitute(p_abs->body.get(), p_abs->var, x.right.get()));
     std::ranges::transform(
-        one_step_beta_reduction(x.left.get()),
+        one_step_beta_reductions(x.left.get()),
         std::back_inserter(result),
         [&x] (term& r) { return term::app(std::move(r), x.right.get()); }
     );
     std::ranges::transform(
-        one_step_beta_reduction(x.right.get()),
+        one_step_beta_reductions(x.right.get()),
         std::back_inserter(result),
         [&x] (term& r) { return term::app(x.left.get(), std::move(r)); }
     );
     return result;
 }
 
-static std::vector<term> one_step_beta_reduction(term::abs_t const& x)
+static std::vector<term> one_step_beta_reductions(term::abs_t const& x)
 {
     std::vector<term> result;
     std::ranges::transform(
-        one_step_beta_reduction(x.body.get()),
+        one_step_beta_reductions(x.body.get()),
         std::back_inserter(result),
         [&x] (term& r) { return term::abs(x.var, std::move(r)); }
     );
     return result;
 }
 
-std::vector<term> one_step_beta_reduction(term const& x)
+std::vector<term> one_step_beta_reductions(term const& x)
 {
-    return std::visit([] (auto const& x) { return one_step_beta_reduction(x); }, x.value);
+    return std::visit([] (auto const& x) { return one_step_beta_reductions(x); }, x.value);
 }
 
 // beta_reduction
@@ -116,7 +116,7 @@ static std::optional<term> beta_reduction(term::app_t const& x)
         return false;
     };
 
-    auto all_possible_reductions = one_step_beta_reduction(x);
+    auto all_possible_reductions = one_step_beta_reductions(x);
     // Remove all "non-viable" reductions; a reduction is "viable" if:
     //  - it reduces the total number of redexes;
     //  - or the original term does not appear again inside that reduction.

@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(num_redexes_tests)
     BOOST_TEST(num_redexes(delta2) == 1ul);
 }
 
-BOOST_AUTO_TEST_CASE(one_step_beta_reduction_tests)
+BOOST_AUTO_TEST_CASE(one_step_beta_reductions_tests)
 {
     using namespace libtt::untyp;
     auto const v = term::var("v");
@@ -159,39 +159,39 @@ BOOST_AUTO_TEST_CASE(one_step_beta_reduction_tests)
     auto const y = term::var("y");
     auto const z = term::var("z");
 
-    BOOST_TEST(one_step_beta_reduction(x).empty());
-    BOOST_TEST(one_step_beta_reduction(term::app(x, x)).empty());
-    BOOST_TEST(one_step_beta_reduction(term::abs("x", x)).empty());
+    BOOST_TEST(one_step_beta_reductions(x).empty());
+    BOOST_TEST(one_step_beta_reductions(term::app(x, x)).empty());
+    BOOST_TEST(one_step_beta_reductions(term::abs("x", x)).empty());
 
     auto const abs1 = term::abs("x", term::app(term::abs("y", term::app(y, x)), z));
     auto const app1 = term::app(abs1, v);
-    BOOST_TEST(one_step_beta_reduction(app1).size() == 2);
-    BOOST_TEST(contains(one_step_beta_reduction(app1), term::app(term::abs("y", term::app(y, v)), z)));
-    BOOST_TEST(contains(one_step_beta_reduction(app1), term::app(term::abs("x", term::app(z, x)), v)));
+    BOOST_TEST(one_step_beta_reductions(app1).size() == 2);
+    BOOST_TEST(contains(one_step_beta_reductions(app1), term::app(term::abs("y", term::app(y, v)), z)));
+    BOOST_TEST(contains(one_step_beta_reductions(app1), term::app(term::abs("x", term::app(z, x)), v)));
 
     auto const abs2 = term::abs("x", term::app(x, x));
     auto const omega = term::app(abs2, abs2);
-    BOOST_TEST(one_step_beta_reduction(omega) == std::vector{omega}, boost::test_tools::per_element{});
+    BOOST_TEST(one_step_beta_reductions(omega) == std::vector{omega}, boost::test_tools::per_element{});
 
     auto const app2_1 = term::app(x, omega);
     auto const app2_2 = term::app(omega, x);
-    BOOST_TEST(one_step_beta_reduction(app2_1) == std::vector{app2_1}, boost::test_tools::per_element{});
-    BOOST_TEST(one_step_beta_reduction(app2_2) == std::vector{app2_2}, boost::test_tools::per_element{});
+    BOOST_TEST(one_step_beta_reductions(app2_1) == std::vector{app2_1}, boost::test_tools::per_element{});
+    BOOST_TEST(one_step_beta_reductions(app2_2) == std::vector{app2_2}, boost::test_tools::per_element{});
 
     auto const const_v = term::abs("u", v);
     auto const app3_1 = term::app(const_v, omega);
     auto const app3_2 = term::app(omega, const_v);
-    BOOST_TEST(one_step_beta_reduction(app3_1).size() == 2);
-    BOOST_TEST(contains(one_step_beta_reduction(app3_1), v));
-    BOOST_TEST(contains(one_step_beta_reduction(app3_1), app3_1));
+    BOOST_TEST(one_step_beta_reductions(app3_1).size() == 2);
+    BOOST_TEST(contains(one_step_beta_reductions(app3_1), v));
+    BOOST_TEST(contains(one_step_beta_reductions(app3_1), app3_1));
 
     auto const abs3 = term::abs("x", omega);
-    BOOST_TEST(one_step_beta_reduction(abs3) == std::vector{abs3}, boost::test_tools::per_element{});
+    BOOST_TEST(one_step_beta_reductions(abs3) == std::vector{abs3}, boost::test_tools::per_element{});
 
     auto const delta = term::abs("x", make_app({x, x, x}));
     auto const delta2 = term::app(delta, delta);
     auto const delta3 = term::app(delta2, delta);
-    BOOST_TEST(one_step_beta_reduction(delta2) == std::vector{delta3}, boost::test_tools::per_element{});
+    BOOST_TEST(one_step_beta_reductions(delta2) == std::vector{delta3}, boost::test_tools::per_element{});
 }
 
 BOOST_AUTO_TEST_CASE(beta_reduction_tests)
