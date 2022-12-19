@@ -49,15 +49,15 @@ struct term
     static term abs(var_t, term);
 };
 
-bool is_var(term const&);
-bool is_app(term const&);
-bool is_abs(term const&);
-
-bool is_closed(term const&);
+inline bool is_var(term const& x) { return std::holds_alternative<term::var_t>(x.value); }
+inline bool is_app(term const& x) { return std::holds_alternative<term::app_t>(x.value); }
+inline bool is_abs(term const& x) { return std::holds_alternative<term::abs_t>(x.value); }
 
 std::set<term::var_t> free_variables(term const&);
 std::set<term::var_t> binding_variables(term const&);
 std::set<term::var_t> binding_and_free_variables(term const&);
+
+inline bool is_closed(term const& x) { return free_variables(x).empty(); }
 
 term::abs_t rename(term::abs_t const&, std::set<term::var_t> const& forbidden_names = {});
 

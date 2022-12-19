@@ -3,17 +3,18 @@
 #include "libtt/untyp/detail/tmp_var_generator.hpp"
 
 #include <algorithm>
+#include <tuple>
 
 namespace libtt::untyp {
 
 bool term::app_t::operator==(term::app_t const& that) const
 {
-    return left.get() == that.left.get() && right.get() == that.right.get();
+    return std::tie(left.get(), right.get()) == std::tie(that.left.get(), that.right.get());
 }
 
 bool term::abs_t::operator==(term::abs_t const& that) const
 {
-    return var == that.var and body.get() == that.body.get();
+    return std::tie(var, body.get()) == std::tie(that.var, that.body.get());
 }
 
 term term::var(std::string name)
@@ -35,12 +36,6 @@ term term::abs(var_t name, term body)
 {
     return term(abs_t(std::move(name), std::move(body)));
 }
-
-bool is_var(term const& x) { return std::holds_alternative<term::var_t>(x.value); }
-bool is_app(term const& x) { return std::holds_alternative<term::app_t>(x.value); }
-bool is_abs(term const& x) { return std::holds_alternative<term::abs_t>(x.value); }
-
-bool is_closed(term const& x) { return free_variables(x).empty(); }
 
 std::set<term::var_t> free_variables(term const& x)
 {
