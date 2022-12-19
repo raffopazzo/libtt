@@ -2,6 +2,7 @@
 #include <boost/test/included/unit_test.hpp>
 
 #include "libtt/typed/type.hpp"
+#include "libtt/typed/pretty_print.hpp"
 
 namespace libtt::typed {
 std::ostream& operator<<(std::ostream&, type::var_t const &);
@@ -86,6 +87,32 @@ BOOST_AUTO_TEST_CASE(arrow_type_tests)
     BOOST_REQUIRE(is_arr(j));
     BOOST_TEST(std::get<type::arr_t>(j.value).dom.get() == g);
     BOOST_TEST(std::get<type::arr_t>(j.value).img.get() == h);
+}
+
+BOOST_AUTO_TEST_CASE(pretty_print_tests)
+{
+    auto const s = type::var("s");
+    auto const t = type::var("t");
+    auto const f = type::arr(s, t);
+    auto const g = type::arr(f, t);
+    auto const h = type::arr(t, f);
+    auto const j = type::arr(g, h);
+    auto const k = type::arr(g, g);
+
+    auto const to_str = [] (type const& x)
+    {
+        std::ostringstream buf;
+        pretty_print(buf, x);
+        return buf.str();
+    };
+
+    BOOST_TEST(to_str(s) == "s");
+    BOOST_TEST(to_str(t) == "t");
+    BOOST_TEST(to_str(f) == "s -> t");
+    BOOST_TEST(to_str(g) == "(s -> t) -> t");
+    BOOST_TEST(to_str(h) == "t -> s -> t");
+    BOOST_TEST(to_str(j) == "((s -> t) -> t) -> t -> s -> t");
+    BOOST_TEST(to_str(k) == "((s -> t) -> t) -> (s -> t) -> t");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
