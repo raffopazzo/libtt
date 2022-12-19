@@ -16,25 +16,25 @@ struct term
 
     struct var_t
     {
-	std::string name;
+        std::string name;
 
-	auto operator<=>(var_t const&) const = default;
+        auto operator<=>(var_t const&) const = default;
     };
 
     struct app_t
     {
-	rec_t left;
-	rec_t right;
+        rec_t left;
+        rec_t right;
 
-	bool operator==(app_t const& that) const;
+        bool operator==(app_t const& that) const;
     };
 
     struct abs_t
     {
-	var_t var;
-	rec_t body;
+        var_t var;
+        rec_t body;
 
-	bool operator==(abs_t const& that) const;
+        bool operator==(abs_t const& that) const;
     };
 
     using value_t = std::variant<var_t, app_t, abs_t>;
@@ -43,10 +43,10 @@ struct term
 
     bool operator==(term const&) const = default;
 
-    static term var(std::string name);
-    static term app(term x, term y);
-    static term abs(std::string var_name, term body);
-    static term abs(var_t name, term body);
+    static term var(std::string);
+    static term app(term, term);
+    static term abs(std::string, term);
+    static term abs(var_t, term);
 };
 
 bool is_var(term const&);

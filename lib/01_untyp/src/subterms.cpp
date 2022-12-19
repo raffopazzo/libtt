@@ -12,20 +12,20 @@ struct subterms_visitor
 
     void operator()(term::var_t const& v)
     {
-	acc.emplace_back(v);
+        acc.emplace_back(v);
     }
 
     void operator()(term::app_t const& x)
     {
-	acc.emplace_back(x);
-	std::visit(*this, x.left.get().value);
-	std::visit(*this, x.right.get().value);
+        acc.emplace_back(x);
+        std::visit(*this, x.left.get().value);
+        std::visit(*this, x.right.get().value);
     }
 
     void operator()(term::abs_t const& x)
     {
-	acc.emplace_back(x);
-	std::visit(*this, x.body.get().value);
+        acc.emplace_back(x);
+        std::visit(*this, x.body.get().value);
     }
 };
 
@@ -39,13 +39,13 @@ struct proper_subterms_visitor
 
     void operator()(term::app_t const& x)
     {
-	std::visit(subterms_visitor{acc}, x.left.get().value);
-	std::visit(subterms_visitor{acc}, x.right.get().value);
+        std::visit(subterms_visitor{acc}, x.left.get().value);
+        std::visit(subterms_visitor{acc}, x.right.get().value);
     }
 
     void operator()(term::abs_t const& x)
     {
-	std::visit(subterms_visitor{acc}, x.body.get().value);
+        std::visit(subterms_visitor{acc}, x.body.get().value);
     }
 };
 

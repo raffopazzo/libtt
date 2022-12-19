@@ -10,13 +10,13 @@ struct tmp_var_generator
 {
     struct iterator
     {
-	std::size_t id;
+        std::size_t id;
 
-	iterator& operator++();
-	iterator operator++(int);
-	term::var_t operator*() const;
+        iterator& operator++();
+        iterator operator++(int);
+        term::var_t operator*() const;
 
-	bool operator==(iterator const&) const = default;
+        bool operator==(iterator const&) const = default;
     };
 
     iterator begin();
