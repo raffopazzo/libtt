@@ -1,7 +1,9 @@
 add_library(libtt_typed_lib
   include/libtt/typed/pretty_print.hpp
+  include/libtt/typed/pre_typed_term.hpp
   include/libtt/typed/type.hpp
   src/pretty_print.cpp
+  src/pre_typed_term.cpp
   src/type.cpp
   )
 add_library(libtt::typed ALIAS libtt_typed_lib)
