@@ -141,4 +141,41 @@ BOOST_AUTO_TEST_CASE(exercise_2_9)
     BOOST_TEST(conclusion_of(type_assign(ctx, expr_b)) == judgement(ctx, statement(expr_b, d_c_b)));
 }
 
+BOOST_AUTO_TEST_CASE(term_search_test)
+{
+    auto const s = type::var("s");
+    auto const t = type::var("t");
+    auto const s_to_t = type::arr(s, t);
+    auto const x = pre_typed_term::var("x");
+    auto const empty = context{};
+    auto const ctx = context([&]
+    {
+        std::map<pre_typed_term::var_t, type> decls;
+        decls.emplace(pre_typed_term::var_t("x"), t);
+        return decls;
+    }());
+    auto const ctx2 = context([&]
+    {
+        std::map<pre_typed_term::var_t, type> decls;
+        decls.emplace(pre_typed_term::var_t("f"), s_to_t);
+        decls.emplace(pre_typed_term::var_t("u"), s);
+        return decls;
+    }());
+    BOOST_TEST(not conclusion_of(term_search(empty, s)).has_value());
+    BOOST_TEST(not conclusion_of(term_search(ctx, s)).has_value());
+    BOOST_TEST(conclusion_of(term_search(ctx, t)) == judgement(ctx, statement(x, t)));
+    auto const conclusion_1 = conclusion_of(term_search(ctx, s_to_t));
+    BOOST_TEST(conclusion_1.has_value());
+    if (conclusion_1.has_value())
+    {
+        BOOST_TEST(conclusion_1->stm.ty == s_to_t);
+    }
+    auto const conclusion_2 = conclusion_of(term_search(ctx2, t));
+    BOOST_TEST(conclusion_2.has_value());
+    if (conclusion_2.has_value())
+    {
+        BOOST_TEST(conclusion_2->stm.ty == t);
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

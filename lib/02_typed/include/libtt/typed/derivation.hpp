@@ -44,7 +44,7 @@ class derivation
     // judgement m_conclusion;
     derivation() = delete;
     friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
-    // friend std::optional<derivation> term_search(context const&, type const&);
+    friend std::optional<derivation> term_search(context const&, type const&);
 
 public:
     using rec_t = boost::recursive_wrapper<derivation>;
