@@ -1,5 +1,10 @@
 FROM ubuntu:20.04
 
+# If you're behind a proxy, uncomment these lines and specify your proxy details
+# ENV http_proxy http://proxy.example.com:80
+# ENV https_proxy http://proxy.example.com:80
+# ENV ftp_proxy http://proxy.example.com:80
+
 # prevent tzdata from hanging
 RUN ln -snf /usr/share/zoneinfo/Europe/London /etc/localtime \
  && echo Europe/London > /etc/timezone
