@@ -52,53 +52,88 @@ std::ostream& operator<<(std::ostream& os, statement const& x)
 
 std::ostream& operator<<(std::ostream& os, judgement const& x)
 {
+    os << '{';
     bool comma = false;
-    for (auto const& [var, ty] : x.ctx.decls)
-        (comma ? os << ", " : os) << var << ": " << ty;
-    return os << " => " << x.stm;
+    for (auto const& decl : x.ctx.decls)
+        (std::exchange(comma, true) ? os << ", " : os) << decl;
+    return os << "} => " << x.stm;
 }
 
 }
 
 using namespace libtt::typed;
 
-BOOST_AUTO_TEST_SUITE(term_search_tests)
-
-BOOST_AUTO_TEST_CASE(term_search_test)
+struct term_search_tests_fixture
 {
-    auto const s = type::var("s");
-    auto const t = type::var("t");
-    auto const s_to_t = type::arr(s, t);
-    auto const x = pre_typed_term::var("x");
-    auto const empty = context{};
-    auto const ctx = context([&]
-    {
-        std::map<pre_typed_term::var_t, type> decls;
-        decls.emplace(pre_typed_term::var_t("x"), t);
-        return decls;
-    }());
-    auto const ctx2 = context([&]
-    {
-        std::map<pre_typed_term::var_t, type> decls;
-        decls.emplace(pre_typed_term::var_t("f"), s_to_t);
-        decls.emplace(pre_typed_term::var_t("u"), s);
-        return decls;
-    }());
+    type const s = type::var("s");
+    type const t = type::var("t");
+    type const s_to_t = type::arr(s, t);
+    type const alpha = type::var("alpha");
+    type const beta = type::var("beta");
+    type const gamma = type::var("gamma");
+    context const empty;
+};
+
+BOOST_FIXTURE_TEST_SUITE(term_search_tests, term_search_tests_fixture)
+
+BOOST_AUTO_TEST_CASE(var_rule_for_simple_types)
+{
+    context const ctx{{{pre_typed_term::var_t("x"), t}}};
     BOOST_TEST(not conclusion_of(term_search(empty, s)).has_value());
     BOOST_TEST(not conclusion_of(term_search(ctx, s)).has_value());
-    BOOST_TEST(conclusion_of(term_search(ctx, t)) == judgement(ctx, statement(x, t)));
-    auto const conclusion_1 = conclusion_of(term_search(ctx, s_to_t));
-    BOOST_TEST(conclusion_1.has_value());
-    if (conclusion_1.has_value())
-    {
-        BOOST_TEST(conclusion_1->stm.ty == s_to_t);
-    }
-    auto const conclusion_2 = conclusion_of(term_search(ctx2, t));
-    BOOST_TEST(conclusion_2.has_value());
-    if (conclusion_2.has_value())
-    {
-        BOOST_TEST(conclusion_2->stm.ty == t);
-    }
+    BOOST_TEST(conclusion_of(term_search(ctx, t)) == judgement(ctx, statement(pre_typed_term::var("x"), t)));
+}
+
+BOOST_AUTO_TEST_CASE(var_rule_for_function)
+{
+    context const ctx{{{pre_typed_term::var_t("f"), s_to_t}}};
+    auto const conclusion = conclusion_of(term_search(ctx, s_to_t));
+    BOOST_TEST(conclusion.has_value());
+    if (conclusion)
+        BOOST_TEST(conclusion->stm.ty == s_to_t);
+}
+
+BOOST_AUTO_TEST_CASE(apply_function_from_context)
+{
+    context const ctx{{
+        {pre_typed_term::var_t("f"), s_to_t},
+        {pre_typed_term::var_t("u"), s}
+    }};
+    auto const conclusion = conclusion_of(term_search(ctx, t));
+    BOOST_TEST(conclusion.has_value());
+    if (conclusion)
+        BOOST_TEST(conclusion->stm.ty == t);
+    BOOST_TEST(conclusion == judgement(empty, statement(pre_typed_term::var("x"), t)));
+}
+
+BOOST_AUTO_TEST_CASE(exercise_2_13_a)
+{
+    context const ctx{{{pre_typed_term::var_t("x"), type::arr(alpha, type::arr(beta, gamma))}}};
+    auto const conclusion = conclusion_of(term_search(ctx, type::arr(type::arr(alpha, beta), type::arr(alpha, gamma))));
+    BOOST_TEST(conclusion.has_value());
+    if (conclusion)
+        BOOST_TEST(conclusion->stm.ty == t); // wrong
+}
+
+BOOST_AUTO_TEST_CASE(exercise_2_13_b)
+{
+    context const ctx{{{pre_typed_term::var_t("x"), type::arr(alpha, type::arr(beta, type::arr(alpha, gamma)))}}};
+    auto const conclusion = conclusion_of(term_search(ctx, type::arr(alpha, type::arr(type::arr(alpha, beta), gamma))));
+    BOOST_TEST(conclusion.has_value());
+    if (conclusion)
+        BOOST_TEST(conclusion->stm.ty == t); // wrong
+}
+
+BOOST_AUTO_TEST_CASE(exercise_2_13_c)
+{
+    auto const alpha_to_gamma = type::arr(alpha, gamma);
+    auto const beta_to_alpha = type::arr(beta, alpha);
+    context const ctx{{{pre_typed_term::var_t("x"), type::arr(type::arr(beta, gamma), gamma)}}};
+    auto const conclusion = conclusion_of(term_search(ctx, type::arr(alpha_to_gamma, type::arr(beta_to_alpha, gamma))));
+    BOOST_TEST(conclusion.has_value());
+    if (conclusion)
+        BOOST_TEST(conclusion->stm.ty == t); // wrong
+    BOOST_TEST(conclusion == judgement(empty, statement(pre_typed_term::var("x"), t)));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

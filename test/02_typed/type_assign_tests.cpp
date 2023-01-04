@@ -52,10 +52,11 @@ std::ostream& operator<<(std::ostream& os, statement const& x)
 
 std::ostream& operator<<(std::ostream& os, judgement const& x)
 {
+    os << '{';
     bool comma = false;
-    for (auto const& [var, ty] : x.ctx.decls)
-        (comma ? os << ", " : os) << var << ": " << ty;
-    return os << " => " << x.stm;
+    for (auto const& decl : x.ctx.decls)
+        (std::exchange(comma, true) ? os << ", " : os) << decl;
+    return os << "} => " << x.stm;
 }
 
 }
@@ -82,18 +83,8 @@ BOOST_AUTO_TEST_CASE(type_assign_var_test)
     auto const gy = pre_typed_term::app(g, y);
 
     auto const empty = context{};
-    auto const ctx = context([&]
-    {
-        std::map<pre_typed_term::var_t, type> decls;
-        decls.emplace(pre_typed_term::var_t("x"), t);
-        return decls;
-    }());
-    auto const ctx2 = context([&]
-    {
-        std::map<pre_typed_term::var_t, type> decls;
-        decls.emplace(pre_typed_term::var_t("y"), s);
-        return decls;
-    }());
+    auto const ctx = context{{{pre_typed_term::var_t("x"), t}}};
+    auto const ctx2 = context{{{pre_typed_term::var_t("y"), s}}};
 
     BOOST_TEST(conclusion_of(type_assign(ctx, x)) == judgement(ctx, statement(x, t)));
     BOOST_TEST(not conclusion_of(type_assign(ctx, xx)).has_value());
@@ -119,14 +110,11 @@ BOOST_AUTO_TEST_CASE(exercise_2_9)
     auto const b = type::var("b");
     auto const c = type::var("c");
     auto const d = type::var("d");
-    auto const ctx = context([&]
-    {
-        std::map<pre_typed_term::var_t, type> decls;
-        decls.emplace(pre_typed_term::var_t("x"), type::arr(d, type::arr(d, a)));
-        decls.emplace(pre_typed_term::var_t("y"), type::arr(c, a));
-        decls.emplace(pre_typed_term::var_t("z"), type::arr(a, b));
-        return decls;
-    }());
+    auto const ctx = context{{
+        {pre_typed_term::var_t("x"), type::arr(d, type::arr(d, a))},
+        {pre_typed_term::var_t("y"), type::arr(c, a)},
+        {pre_typed_term::var_t("z"), type::arr(a, b)}
+    }};
     auto const d_c_b = type::arr(d, type::arr(c, b));
     auto const u = pre_typed_term::var("u");
     auto const v = pre_typed_term::var("v");
