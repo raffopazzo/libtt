@@ -1,4 +1,5 @@
 #include "libtt/typed/derivation.hpp"
+#include "libtt/core/var_name_generator.hpp"
 
 namespace libtt::typed {
 
@@ -137,14 +138,28 @@ std::optional<derivation> term_search(context const& ctx, type const& target)
         {
             // We are trying to search for a term of some function type.
             // If we can find a term of the image type, we can simply assume a value of the domain and discard it.
-            auto ext = ctx;
-            // TODO return string from tmp_var_generator instead of term::var_t
-            for (auto const& new_var: detail::tmp_var_generator())
-                if (not ctx.decls.contains(pre_typed_term::var_t(new_var.name)))
+            auto const& [ext, new_var] = [this, &target] ()
+            {
+                for (auto const& new_var_name: core::var_name_generator())
                 {
-                    ext.emplace(pre_typed_term::var_t(new_var.name), target.img.get());
+                    auto const& new_var = pre_typed_term::var_t(new_var_name);
+                    if (not ctx.decls.contains(new_var))
+                    {
+                        auto ext = ctx;
+                        ext.decls.emplace(new_var, target.dom.get());
+                        return std::make_pair(std::move(ext), new_var);
+                    }
                 }
-
+                __builtin_unreachable();
+            }();
+            if (auto d = term_search(ext, target.img.get()))
+                return derivation(
+                    derivation::abs_t(
+                        ctx,
+                        new_var,
+                        target.dom.get(),
+                        std::move(*d),
+                        type(target)));
             return std::nullopt;
         }
     };
