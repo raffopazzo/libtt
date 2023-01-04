@@ -1,2 +1,0 @@
-image=gcc_11_2-ubuntu
-env+=(CONAN_USER_HOME=/home/raffaele/Projects/libtt)
