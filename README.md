@@ -6,14 +6,16 @@ Is a library for Type Theory
 
 First you need to build the devbox docker image via:
 
+(NB if you're behind a proxy you might need to edit the Dockerfile)
+
 ```
-$ ./test/devbox/build-image.sh
+$ ./tools/devbox/build-image.sh
 ```
 
 Then you can run conan and cmake as normal within a devbox environment:
 
 ```
-$ ./test/devbox/devbox.sh
+$ ./tools/devbox/devbox.sh
 ...$ conan install . --install-folder build
 ...$ conan profile update settings.compiler.libcxx=libstdc++11 default
 ...$ cmake . -Bbuild -DCMAKE_MODULE_PATH=$PWD/build
@@ -25,9 +27,9 @@ $ ./test/devbox/devbox.sh
 Alteernatively:
 
 ```
-$ ./test/devbox/devbox.sh conan install . --install-folder build
-$ ./test/devbox/devbox.sh conan profile update settings.compiler.libcxx=libstdc++11 default
-$ ./test/devbox/devbox.sh cmake . -Bbuild -DCMAKE_MODULE_PATH=$PWD/build
-$ ./test/devbox/devbox.sh cmake --build build
-$ ./test/devbox/devbox.sh ctest --test-dir build -VV
+$ ./tools/devbox/devbox.sh conan install . --install-folder build
+$ ./tools/devbox/devbox.sh conan profile update settings.compiler.libcxx=libstdc++11 default
+$ ./tools/devbox/devbox.sh cmake . -Bbuild -DCMAKE_MODULE_PATH=$PWD/build
+$ ./tools/devbox/devbox.sh cmake --build build
+$ ./tools/devbox/devbox.sh ctest --test-dir build -VV
 ```
