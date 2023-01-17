@@ -106,6 +106,20 @@ BOOST_AUTO_TEST_CASE(apply_function_from_context)
     BOOST_TEST(conclusion == judgement(empty, statement(pre_typed_term::var("x"), t)));
 }
 
+BOOST_AUTO_TEST_CASE(apply_multi_variate)
+{
+    context const ctx{{
+        {pre_typed_term::var_t("f"), type::arr(alpha, s_to_t)},
+        {pre_typed_term::var_t("x"), alpha},
+        {pre_typed_term::var_t("u"), s}
+    }};
+    auto const conclusion = conclusion_of(term_search(ctx, t));
+    BOOST_TEST(conclusion.has_value());
+    if (conclusion)
+        BOOST_TEST(conclusion->stm.ty == t);
+    BOOST_TEST(conclusion == judgement(empty, statement(pre_typed_term::var("x"), t)));
+}
+
 BOOST_AUTO_TEST_CASE(exercise_2_13_a)
 {
     context const ctx{{{pre_typed_term::var_t("x"), type::arr(alpha, type::arr(beta, gamma))}}};
@@ -113,6 +127,7 @@ BOOST_AUTO_TEST_CASE(exercise_2_13_a)
     BOOST_TEST(conclusion.has_value());
     if (conclusion)
         BOOST_TEST(conclusion->stm.ty == t); // wrong
+    BOOST_TEST(conclusion == judgement(empty, statement(pre_typed_term::var("x"), t)));
 }
 
 BOOST_AUTO_TEST_CASE(exercise_2_13_b)
@@ -122,6 +137,7 @@ BOOST_AUTO_TEST_CASE(exercise_2_13_b)
     BOOST_TEST(conclusion.has_value());
     if (conclusion)
         BOOST_TEST(conclusion->stm.ty == t); // wrong
+    BOOST_TEST(conclusion == judgement(empty, statement(pre_typed_term::var("x"), t)));
 }
 
 BOOST_AUTO_TEST_CASE(exercise_2_13_c)

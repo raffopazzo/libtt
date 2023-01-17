@@ -1,6 +1,8 @@
 #include "libtt/typed/derivation.hpp"
 #include "libtt/core/var_name_generator.hpp"
 
+#include <numeric>
+
 namespace libtt::typed {
 
 std::optional<type> context::operator[](pre_typed_term::var_t const& v) const
@@ -105,6 +107,32 @@ std::optional<derivation> type_assign(context const& ctx, pre_typed_term const& 
     return std::visit(visitor{ctx}, x.value);
 }
 
+static std::vector<type> try_split_fun_args(type::arr_t const& arr_type, type const& image_type)
+{
+    auto const* p_arr_type = &arr_type;
+    std::vector<type> result;
+    result.push_back(p_arr_type->dom.get());
+    while (p_arr_type->img.get() != image_type)
+    {
+        p_arr_type = std::get_if<type::arr_t>(&p_arr_type->img.get().value);
+        if (p_arr_type == nullptr)
+            return {};
+        result.push_back(p_arr_type->dom.get());
+    }
+    return result;
+}
+
+static std::vector<derivation> find_all_or_nothing(context const& ctx, std::vector<type> const& types)
+{
+    std::vector<derivation> result;
+    for (auto const& t: types)
+        if (auto v = term_search(ctx, t))
+            result.push_back(std::move(*v));
+        else
+            return {};
+    return result;
+}
+
 std::optional<derivation> term_search(context const& ctx, type const& target)
 {
     // The easy case is if there is a declaration in the given context for the target type.
@@ -112,17 +140,33 @@ std::optional<derivation> term_search(context const& ctx, type const& target)
         if (target == ty)
             return derivation(derivation::var_t(ctx, var, target));
     // There isn't one. But there might be a function whose image type matches with the target type.
-    // If so, it suffices to find a term of the domain type.
+    // If so, it suffices to find terms in the domain types (or a subset in case of partial application).
     for (auto const& [var, ty]: ctx.decls)
-        if (auto const* const p = std::get_if<type::arr_t>(&ty.value))
-            if (p->img.get() == target)
-                if (auto d = term_search(ctx, p->dom.get()))
-                    return derivation(
+        if (auto const* const p_arr_type = std::get_if<type::arr_t>(&ty.value))
+        {
+            auto const arg_terms = find_all_or_nothing(ctx, try_split_fun_args(*p_arr_type, target));
+            if (not arg_terms.empty())
+            {
+                auto const first_arg = arg_terms.begin();
+                return std::accumulate(
+                    std::next(first_arg), arg_terms.end(),
+                    derivation(
                         derivation::app_t(
                             ctx,
                             derivation(derivation::var_t(ctx, var, ty)),
-                            std::move(*d),
-                            target));
+                            *first_arg,
+                            p_arr_type->img.get())),
+                    [&ctx] (derivation const& acc, derivation const& arg)
+                    {
+                        // Because we are accumulating over multi-variate function, acc must also be of arrow type,
+                        // and the result of this application will be of the type of the image.
+                        // Also, taking copy because otherwise, std::get would introduce a dangling reference
+                        // to the temporary judgement from acc.conclusion()
+                        auto const arr = std::get<type::arr_t>(acc.conclusion().stm.ty.value);
+                        return derivation(derivation::app_t(ctx, acc, arg, arr.img.get()));
+                    });
+            }
+        }
     struct visitor
     {
         context const& ctx;
