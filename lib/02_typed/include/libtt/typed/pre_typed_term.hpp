@@ -5,6 +5,7 @@
 #include <boost/variant/recursive_wrapper.hpp>
 
 #include <compare>
+#include <set>
 #include <string>
 #include <variant>
 
@@ -54,4 +55,13 @@ inline bool is_var(pre_typed_term const& x) { return std::holds_alternative<pre_
 inline bool is_app(pre_typed_term const& x) { return std::holds_alternative<pre_typed_term::app_t>(x.value); }
 inline bool is_abs(pre_typed_term const& x) { return std::holds_alternative<pre_typed_term::abs_t>(x.value); }
 
+std::set<pre_typed_term::var_t> free_variables(pre_typed_term const&);
+std::set<pre_typed_term::var_t> binding_variables(pre_typed_term const&);
+std::set<pre_typed_term::var_t> binding_and_free_variables(pre_typed_term const&);
+
+pre_typed_term::abs_t rename(pre_typed_term::abs_t const&, std::set<pre_typed_term::var_t> const& forbidden_names = {});
+
+pre_typed_term replace(pre_typed_term const&, pre_typed_term::var_t const& from, pre_typed_term::var_t const& to);
+
+pre_typed_term substitute(pre_typed_term const& x, pre_typed_term::var_t const& var, pre_typed_term const& y);
 }

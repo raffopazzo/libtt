@@ -1,6 +1,7 @@
 #define BOOST_TEST_MODULE term_search
 #include <boost/test/included/unit_test.hpp>
 
+#include "libtt/typed/alpha_equivalence.hpp"
 #include "libtt/typed/derivation.hpp"
 #include "libtt/typed/pretty_print.hpp"
 
@@ -87,10 +88,7 @@ BOOST_AUTO_TEST_CASE(var_rule_for_simple_types)
 BOOST_AUTO_TEST_CASE(var_rule_for_function)
 {
     context const ctx{{{pre_typed_term::var_t("f"), s_to_t}}};
-    auto const conclusion = conclusion_of(term_search(ctx, s_to_t));
-    BOOST_TEST(conclusion.has_value());
-    if (conclusion)
-        BOOST_TEST(conclusion->stm.ty == s_to_t);
+    BOOST_TEST(conclusion_of(term_search(ctx, s_to_t)) == judgement(ctx, statement(pre_typed_term::var("f"), s_to_t)));
 }
 
 BOOST_AUTO_TEST_CASE(apply_function_from_context)
@@ -99,11 +97,8 @@ BOOST_AUTO_TEST_CASE(apply_function_from_context)
         {pre_typed_term::var_t("f"), s_to_t},
         {pre_typed_term::var_t("u"), s}
     }};
-    auto const conclusion = conclusion_of(term_search(ctx, t));
-    BOOST_TEST(conclusion.has_value());
-    if (conclusion)
-        BOOST_TEST(conclusion->stm.ty == t);
-    BOOST_TEST(conclusion == judgement(empty, statement(pre_typed_term::var("x"), t)));
+    auto const expected_stm = statement(pre_typed_term::app(pre_typed_term::var("f"), pre_typed_term::var("u")), t);
+    BOOST_TEST(conclusion_of(term_search(ctx, t)) == judgement(ctx, expected_stm));
 }
 
 BOOST_AUTO_TEST_CASE(apply_multi_variate)
@@ -113,31 +108,68 @@ BOOST_AUTO_TEST_CASE(apply_multi_variate)
         {pre_typed_term::var_t("x"), alpha},
         {pre_typed_term::var_t("u"), s}
     }};
-    auto const conclusion = conclusion_of(term_search(ctx, t));
-    BOOST_TEST(conclusion.has_value());
-    if (conclusion)
-        BOOST_TEST(conclusion->stm.ty == t);
-    BOOST_TEST(conclusion == judgement(empty, statement(pre_typed_term::var("x"), t)));
+    auto const expected_stm = statement(
+        pre_typed_term::app(
+            pre_typed_term::app(
+                pre_typed_term::var("f"),
+                pre_typed_term::var("x")),
+            pre_typed_term::var("u")),
+        t);
+    BOOST_TEST(conclusion_of(term_search(ctx, t)) == judgement(ctx, expected_stm));
 }
 
 BOOST_AUTO_TEST_CASE(exercise_2_13_a)
 {
     context const ctx{{{pre_typed_term::var_t("x"), type::arr(alpha, type::arr(beta, gamma))}}};
-    auto const conclusion = conclusion_of(term_search(ctx, type::arr(type::arr(alpha, beta), type::arr(alpha, gamma))));
+    auto const expected_type = type::arr(type::arr(alpha, beta), type::arr(alpha, gamma));
+    auto const conclusion = conclusion_of(term_search(ctx, expected_type));
     BOOST_TEST(conclusion.has_value());
     if (conclusion)
-        BOOST_TEST(conclusion->stm.ty == t); // wrong
-    BOOST_TEST(conclusion == judgement(empty, statement(pre_typed_term::var("x"), t)));
+    {
+        auto const equivalent_term =
+            pre_typed_term::abs(
+                "u", type::arr(alpha, beta),
+                pre_typed_term::abs(
+                    "v", alpha,
+                    pre_typed_term::app(
+                        pre_typed_term::app(
+                            pre_typed_term::var("x"),
+                            pre_typed_term::var("v")),
+                        pre_typed_term::app(
+                            pre_typed_term::var("u"),
+                            pre_typed_term::var("v")))));
+        BOOST_TEST(conclusion->ctx.decls == ctx.decls, boost::test_tools::per_element{});
+        BOOST_TEST(conclusion->stm.ty == expected_type);
+        BOOST_TEST(is_alpha_equivalent(conclusion->stm.subject, equivalent_term));
+    }
 }
 
 BOOST_AUTO_TEST_CASE(exercise_2_13_b)
 {
     context const ctx{{{pre_typed_term::var_t("x"), type::arr(alpha, type::arr(beta, type::arr(alpha, gamma)))}}};
-    auto const conclusion = conclusion_of(term_search(ctx, type::arr(alpha, type::arr(type::arr(alpha, beta), gamma))));
+    auto const expected_type = type::arr(alpha, type::arr(type::arr(alpha, beta), gamma));
+    auto const conclusion = conclusion_of(term_search(ctx, expected_type));
     BOOST_TEST(conclusion.has_value());
     if (conclusion)
-        BOOST_TEST(conclusion->stm.ty == t); // wrong
-    BOOST_TEST(conclusion == judgement(empty, statement(pre_typed_term::var("x"), t)));
+    {
+        auto const equivalent_term =
+            pre_typed_term::abs(
+                "u", alpha,
+                pre_typed_term::abs(
+                    "v", type::arr(alpha, beta),
+                    pre_typed_term::app(
+                        pre_typed_term::app(
+                            pre_typed_term::app(
+                                pre_typed_term::var("x"),
+                                pre_typed_term::var("u")),
+                            pre_typed_term::app(
+                                pre_typed_term::var("v"),
+                                pre_typed_term::var("u"))),
+                        pre_typed_term::var("u"))));
+        BOOST_TEST(conclusion->ctx.decls == ctx.decls, boost::test_tools::per_element{});
+        BOOST_TEST(conclusion->stm.ty == expected_type);
+        BOOST_TEST(is_alpha_equivalent(conclusion->stm.subject, equivalent_term));
+    }
 }
 
 BOOST_AUTO_TEST_CASE(exercise_2_13_c)
@@ -145,11 +177,29 @@ BOOST_AUTO_TEST_CASE(exercise_2_13_c)
     auto const alpha_to_gamma = type::arr(alpha, gamma);
     auto const beta_to_alpha = type::arr(beta, alpha);
     context const ctx{{{pre_typed_term::var_t("x"), type::arr(type::arr(beta, gamma), gamma)}}};
-    auto const conclusion = conclusion_of(term_search(ctx, type::arr(alpha_to_gamma, type::arr(beta_to_alpha, gamma))));
+    auto const expected_type = type::arr(alpha_to_gamma, type::arr(beta_to_alpha, gamma));
+    auto const conclusion = conclusion_of(term_search(ctx, expected_type));
     BOOST_TEST(conclusion.has_value());
     if (conclusion)
-        BOOST_TEST(conclusion->stm.ty == t); // wrong
-    BOOST_TEST(conclusion == judgement(empty, statement(pre_typed_term::var("x"), t)));
+    {
+        auto const equivalent_term =
+            pre_typed_term::abs(
+                "u", alpha_to_gamma,
+                pre_typed_term::abs(
+                    "v", beta_to_alpha,
+                    pre_typed_term::app(
+                        pre_typed_term::var("x"),
+                        pre_typed_term::abs(
+                            "w", beta,
+                            pre_typed_term::app(
+                                pre_typed_term::var("u"),
+                                pre_typed_term::app(
+                                    pre_typed_term::var("v"),
+                                    pre_typed_term::var("w")))))));
+        BOOST_TEST(conclusion->ctx.decls == ctx.decls, boost::test_tools::per_element{});
+        BOOST_TEST(conclusion->stm.ty == expected_type);
+        BOOST_TEST(is_alpha_equivalent(conclusion->stm.subject, equivalent_term));
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
