@@ -61,7 +61,7 @@ std::optional<derivation> type_assign(context const& ctx, pre_typed_term const& 
         std::optional<derivation> operator()(pre_typed_term::var_t const& x) const
         {
             if (auto ty = ctx[x])
-                return derivation(derivation::var_t(ctx, x, *ty));
+                return derivation(derivation::var_t(ctx, x, std::move(*ty)));
             else
                 return std::nullopt;
         }
@@ -167,40 +167,37 @@ std::optional<derivation> term_search(context const& ctx, type const& target)
                     });
             }
         }
+    // So far we could not produce a term of the target type, not even by function application.
+    // If we are trying to produce a simple type, then there is nothing else we can do.
+    // But if we are trying to search for a term of some function type, we might be able to assume a term
+    // of the domain type and with that produce a term of the image type.
     struct visitor
     {
         context const& ctx;
 
-        std::optional<derivation> operator()(type::var_t const& target) const
-        {
-            // So far we could not produce a term of the target type, not even by simple function application.
-            // Since we're trying to produce a simple type, there is nothing else we can do.
-            return std::nullopt;
-        }
+        std::optional<derivation> operator()(type::var_t const& target) const { return std::nullopt; }
 
         std::optional<derivation> operator()(type::arr_t const& target) const
         {
-            // We are trying to search for a term of some function type.
-            // If we can find a term of the image type, we can simply assume a value of the domain and discard it.
-            auto const& [ext, new_var] = [this, &target] ()
+            auto [ext_ctx, new_var] = [this, &target] ()
             {
-                for (auto const& new_var_name: core::var_name_generator())
+                for (auto new_var_name: core::var_name_generator())
                 {
-                    auto const& new_var = pre_typed_term::var_t(new_var_name);
+                    auto new_var = pre_typed_term::var_t(std::move(new_var_name));
                     if (not ctx.decls.contains(new_var))
                     {
-                        auto ext = ctx;
-                        ext.decls.emplace(new_var, target.dom.get());
-                        return std::make_pair(std::move(ext), new_var);
+                        auto ext_ctx = ctx;
+                        ext_ctx.decls.emplace(new_var, target.dom.get());
+                        return std::make_pair(std::move(ext_ctx), std::move(new_var));
                     }
                 }
                 __builtin_unreachable();
             }();
-            if (auto d = term_search(ext, target.img.get()))
+            if (auto d = term_search(std::move(ext_ctx), target.img.get()))
                 return derivation(
                     derivation::abs_t(
                         ctx,
-                        new_var,
+                        std::move(new_var),
                         target.dom.get(),
                         std::move(*d),
                         type(target)));
