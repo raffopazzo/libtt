@@ -5,21 +5,26 @@
 #include "libtt/typed/pretty_print.hpp"
 
 namespace libtt::typed {
-std::ostream& operator<<(std::ostream&, type::var_t const &);
-std::ostream& operator<<(std::ostream&, type::arr_t const &);
-std::ostream& operator<<(std::ostream&, type const &);
 
-std::ostream& operator<<(std::ostream &os, type::var_t const &x) {
+std::ostream& operator<<(std::ostream&, type::var_t const&);
+std::ostream& operator<<(std::ostream&, type::arr_t const&);
+std::ostream& operator<<(std::ostream&, type const&);
+
+std::ostream& operator<<(std::ostream& os, type::var_t const& x)
+{
     return os << x.name;
 }
 
-std::ostream& operator<<(std::ostream &os, type::arr_t const &x) {
+std::ostream& operator<<(std::ostream& os, type::arr_t const& x)
+{
     return os << "((" << x.dom.get() << ") -> (" << x.img.get() << "))";
 }
 
-std::ostream& operator<<(std::ostream &os, type const &x) {
-    return std::visit([&os](auto const &x) -> std::ostream& {return os << x;}, x.value);
+std::ostream& operator<<(std::ostream& os, type const& x)
+{
+    return std::visit([&os](auto const& x) -> std::ostream& {return os << x;}, x.value);
 }
+
 }
 
 using namespace libtt::typed;

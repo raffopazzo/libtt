@@ -89,6 +89,7 @@ std::set<term::var_t> binding_and_free_variables(term const& x)
     std::ranges::move(binding_variables(x), inserter);
     return result;
 }
+
 term::abs_t rename(term::abs_t const& x, std::set<term::var_t> const& forbidden_names)
 {
     auto const& old_vars = binding_and_free_variables(x.body.get());
