@@ -40,8 +40,6 @@ struct judgement
 
 class derivation
 {
-    // std::vector<judgement> m_premisses;
-    // judgement m_conclusion;
     derivation() = delete;
     friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
     friend std::optional<derivation> term_search(context const&, type const&);
@@ -76,27 +74,24 @@ public:
     using value_t = std::variant<var_t, app_t, abs_t>;
     value_t value;
 
-    // std::vector<judgement> premisses() const;
-    judgement conclusion() const;
-
 private:
     explicit derivation(var_t);
     explicit derivation(app_t);
     explicit derivation(abs_t);
 };
 
-std::optional<derivation> type_assign(context const&, pre_typed_term const&);
-std::optional<derivation> term_search(context const&, type const&);
-
+judgement conclusion_of(derivation const&);
 inline std::optional<judgement> conclusion_of(std::optional<derivation> const& x)
 {
-    return x ? std::optional{x->conclusion()} : std::nullopt;
+    return x ? std::optional{conclusion_of(*x)} : std::nullopt;
 }
 
+std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+std::optional<derivation> term_search(context const&, type const&);
 inline bool type_check(context const& ctx, pre_typed_term const& x, type const& t)
 {
-    auto const d = type_assign(ctx, x);
-    return d and d->conclusion().stm.ty == t;
+    auto const conclusion = conclusion_of(type_assign(ctx, x));
+    return conclusion and conclusion->stm.ty == t;
 }
 
 }

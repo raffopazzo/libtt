@@ -15,7 +15,7 @@ derivation::derivation(var_t x) : value(std::move(x)) {}
 derivation::derivation(app_t x) : value(std::move(x)) {}
 derivation::derivation(abs_t x) : value(std::move(x)) {}
 
-judgement derivation::conclusion() const
+judgement conclusion_of(derivation const& x)
 {
     struct visitor
     {
@@ -30,8 +30,8 @@ judgement derivation::conclusion() const
                 x.ctx,
                 statement(
                     pre_typed_term::app(
-                        x.left.get().conclusion().stm.subject,
-                        x.right.get().conclusion().stm.subject
+                        conclusion_of(x.left.get()).stm.subject,
+                        conclusion_of(x.right.get()).stm.subject
                     ),
                     x.ty
                 )
@@ -43,13 +43,13 @@ judgement derivation::conclusion() const
             return judgement(
                 x.ctx,
                 statement(
-                    pre_typed_term::abs(x.var, x.var_type, x.body.get().conclusion().stm.subject),
+                    pre_typed_term::abs(x.var, x.var_type, conclusion_of(x.body.get()).stm.subject),
                     x.ty
                 )       
             );
         }
     };
-    return std::visit(visitor{}, value);
+    return std::visit(visitor{}, x.value);
 }
 
 std::optional<derivation> type_assign(context const& ctx, pre_typed_term const& x)
@@ -70,12 +70,12 @@ std::optional<derivation> type_assign(context const& ctx, pre_typed_term const& 
         {
             auto left_d = type_assign(ctx, x.left.get());
             if (not left_d) return std::nullopt;
-            auto const left_conclusion = left_d->conclusion();
+            auto const left_conclusion = conclusion_of(*left_d);
             auto p_abs = std::get_if<type::arr_t>(&left_conclusion.stm.ty.value);
             if (not p_abs)  return std::nullopt;
             auto right_d = type_assign(ctx, x.right.get());
             if (not right_d) return std::nullopt;
-            auto const right_conclusion = right_d->conclusion();
+            auto const right_conclusion = conclusion_of(*right_d);
             if (right_conclusion.stm.ty != p_abs->dom.get()) return std::nullopt;
             return derivation(derivation::app_t(
                 ctx,
@@ -91,12 +91,12 @@ std::optional<derivation> type_assign(context const& ctx, pre_typed_term const& 
             ext_ctx.decls[x.var] = x.var_type;
             if (auto body_derivation = type_assign(ext_ctx, x.body.get()))
             {
-                auto function_type = type::arr(x.var_type, body_derivation->conclusion().stm.ty);
+                auto function_type = type::arr(x.var_type, conclusion_of(*body_derivation).stm.ty);
                 return derivation(derivation::abs_t(
                     ctx,
                     x.var,
                     x.var_type,
-                    *std::move(body_derivation),
+                    std::move(*body_derivation),
                     function_type
                 ));
             }
@@ -161,8 +161,8 @@ std::optional<derivation> term_search(context const& ctx, type const& target)
                         // Because we are accumulating over multi-variate function, acc must also be of arrow type,
                         // and the result of this application will be of the type of the image.
                         // Also, taking copy because otherwise, std::get would introduce a dangling reference
-                        // to the temporary judgement from acc.conclusion()
-                        auto const arr = std::get<type::arr_t>(acc.conclusion().stm.ty.value);
+                        // to the temporary judgement from conclusion_of(acc).
+                        auto const arr = std::get<type::arr_t>(conclusion_of(acc).stm.ty.value);
                         return derivation(derivation::app_t(ctx, acc, arg, arr.img.get()));
                     });
             }
