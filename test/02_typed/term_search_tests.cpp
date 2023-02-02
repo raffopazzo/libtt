@@ -19,46 +19,11 @@ std::ostream& operator<<(std::ostream& os, std::pair<T, U> const& x)
     return os << x.first << ':' << x.second;
 }
 
-std::ostream& operator<<(std::ostream& os, type const& t) { return pretty_print(os, t); };
-
-std::ostream& operator<<(std::ostream&, pre_typed_term::var_t const&);
-std::ostream& operator<<(std::ostream&, pre_typed_term::app_t const&);
-std::ostream& operator<<(std::ostream&, pre_typed_term::abs_t const&);
-std::ostream& operator<<(std::ostream&, pre_typed_term const&);
-
-std::ostream& operator<<(std::ostream& os, pre_typed_term::var_t const& x)
-{
-    return os << x.name;
-}
-
-std::ostream& operator<<(std::ostream& os, pre_typed_term::app_t const& x)
-{
-    return os << '(' << x.left.get() << ' ' << x.right.get() << ')';
-}
-
-std::ostream& operator<<(std::ostream& os, pre_typed_term::abs_t const& x)
-{
-    return os << "(lambda " << x.var << " : " << x.var_type << " . " << x.body.get() << ')';
-}
-
-std::ostream& operator<<(std::ostream& os, pre_typed_term const& x)
-{
-    return std::visit([&os](auto const& x) -> std::ostream& {return os << x;}, x.value);
-}
-
-std::ostream& operator<<(std::ostream& os, statement const& x)
-{
-    return os << x.subject << ": " << x.ty;
-}
-
-std::ostream& operator<<(std::ostream& os, judgement const& x)
-{
-    os << '{';
-    bool comma = false;
-    for (auto const& decl : x.ctx.decls)
-        (std::exchange(comma, true) ? os << ", " : os) << decl;
-    return os << "} => " << x.stm;
-}
+std::ostream& operator<<(std::ostream& os, type const& x) { return pretty_print(os, x); };
+std::ostream& operator<<(std::ostream& os, pre_typed_term::var_t const& x) { return os << x.name; };
+std::ostream& operator<<(std::ostream& os, pre_typed_term const& x) { return pretty_print(os, x); };
+std::ostream& operator<<(std::ostream& os, statement const& x) { return pretty_print(os, x); }
+std::ostream& operator<<(std::ostream& os, judgement const& x) { return pretty_print(os, x); }
 
 }
 
