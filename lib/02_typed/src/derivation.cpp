@@ -11,6 +11,27 @@ std::optional<type> context::operator[](pre_typed_term::var_t const& v) const
     return it == decls.end() ? std::nullopt : std::optional{it->second};
 }
 
+derivation::var_t::var_t(context ctx, pre_typed_term::var_t var, type ty) :
+    ctx(std::move(ctx)),
+    var(std::move(var)),
+    ty(std::move(ty))
+{ }
+
+derivation::app_t::app_t( context ctx, derivation fun, derivation arg, type ty) :
+    ctx(std::move(ctx)),
+    fun(std::move(fun)),
+    arg(std::move(arg)),
+    ty(std::move(ty))
+{ }
+
+derivation::abs_t::abs_t(context ctx, pre_typed_term::var_t var, type var_type, derivation body, type ty) :
+    ctx(std::move(ctx)),
+    var(std::move(var)),
+    var_type(std::move(var_type)),
+    body(std::move(body)),
+    ty(std::move(ty))
+{ }
+
 derivation::derivation(var_t x) : value(std::move(x)) {}
 derivation::derivation(app_t x) : value(std::move(x)) {}
 derivation::derivation(abs_t x) : value(std::move(x)) {}
@@ -30,8 +51,8 @@ judgement conclusion_of(derivation const& x)
                 x.ctx,
                 statement(
                     pre_typed_term::app(
-                        conclusion_of(x.left.get()).stm.subject,
-                        conclusion_of(x.right.get()).stm.subject
+                        conclusion_of(x.fun.get()).stm.subject,
+                        conclusion_of(x.arg.get()).stm.subject
                     ),
                     x.ty
                 )

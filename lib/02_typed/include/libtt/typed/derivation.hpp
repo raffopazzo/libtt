@@ -38,28 +38,38 @@ struct judgement
     bool operator==(judgement const&) const = default;
 };
 
-class derivation
+struct derivation
 {
-    derivation() = delete;
-    friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
-    friend std::optional<derivation> term_search(context const&, type const&);
-
-public:
     using rec_t = boost::recursive_wrapper<derivation>;
+
+    // The member variable `ty` in `var_t`, `app_t` and `abs_t` is technically redundant because its value can always
+    // be derived ether by a lookup in the context (for the var-case) or by inspecting the conclusions of the premisses.
 
     struct var_t
     {
         context ctx;
         pre_typed_term::var_t var;
         type ty;
+
+    private:
+        var_t(context, pre_typed_term::var_t, type);
+
+        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+        friend std::optional<derivation> term_search(context const&, type const&);
     };
 
     struct app_t
     {
         context ctx;
-        rec_t left;
-        rec_t right;
+        rec_t fun; // the conclusion of this derivation contains a statement of arrow type
+        rec_t arg; // the conclusion of this derivation contains a statement whose type matches the domain of the arrow
         type ty;
+
+    private:
+        app_t(context, derivation, derivation, type ty);
+
+        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+        friend std::optional<derivation> term_search(context const&, type const&);
     };
 
     struct abs_t
@@ -69,12 +79,17 @@ public:
         type var_type;
         rec_t body;
         type ty;
+
+    private:
+        abs_t(context, pre_typed_term::var_t, type, derivation, type);
+
+        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+        friend std::optional<derivation> term_search(context const&, type const&);
     };
 
     using value_t = std::variant<var_t, app_t, abs_t>;
     value_t value;
 
-private:
     explicit derivation(var_t);
     explicit derivation(app_t);
     explicit derivation(abs_t);
