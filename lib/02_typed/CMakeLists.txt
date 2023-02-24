@@ -1,11 +1,13 @@
 add_library(libtt_typed_lib
   include/libtt/typed/alpha_equivalence.hpp
   include/libtt/typed/derivation.hpp
+  include/libtt/typed/legal_term.hpp
   include/libtt/typed/pretty_print.hpp
   include/libtt/typed/pre_typed_term.hpp
   include/libtt/typed/type.hpp
   src/alpha_equivalence.cpp
   src/derivation.cpp
+  src/legal_term.cpp
   src/pretty_print.cpp
   src/pre_typed_term.cpp
   src/type.cpp

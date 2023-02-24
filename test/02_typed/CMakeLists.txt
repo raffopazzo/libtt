@@ -1,3 +1,7 @@
+add_executable(legal_term_tests legal_term_tests.cpp)
+add_test(NAME legal_term_tests COMMAND legal_term_tests)
+target_link_libraries(legal_term_tests PUBLIC libtt::typed)
+
 add_executable(pre_typed_term_tests pre_typed_term_tests.cpp)
 add_test(NAME pre_typed_term_tests COMMAND pre_typed_term_tests)
 target_link_libraries(pre_typed_term_tests PUBLIC libtt::typed)
