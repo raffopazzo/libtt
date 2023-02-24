@@ -22,20 +22,16 @@ using namespace libtt::typed;
 
 BOOST_AUTO_TEST_SUITE(legal_term_tests)
 
-BOOST_AUTO_TEST_CASE(substitution_tests)
+BOOST_AUTO_TEST_CASE(constructor_tests)
 {
     auto const s = type::var("s");
-    auto const t = type::var("t");
-    auto const s_to_t = type::arr(s, t);
     auto const x = pre_typed_term::var("x");
-    auto const y = pre_typed_term::var("y");
-    context const ctx1{{{pre_typed_term::var_t("x"), s}}};
-    context const ctx2{{{pre_typed_term::var_t("y"), t}}};
+    context const ctx{{{pre_typed_term::var_t("x"), s}}};
 
-    auto const m = legal_term(type_assign(ctx1, x).value());
-    BOOST_TEST(m.ctx.decls == ctx1.decls, boost::test_tools::per_element{});
-    BOOST_TEST(m.term == x);
-    BOOST_TEST(m.ty == s);
+    auto const mx = legal_term(type_assign(ctx, x).value());
+    BOOST_TEST(mx.ctx.decls == ctx.decls, boost::test_tools::per_element{});
+    BOOST_TEST(mx.term == x);
+    BOOST_TEST(mx.ty == s);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

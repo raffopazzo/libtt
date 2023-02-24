@@ -18,6 +18,6 @@ private:
     explicit legal_term(judgement&&);
 };
 
-std::optional<legal_term> substitute(legal_term const&, std::string const&, legal_term const&);
+std::optional<legal_term> substitute(legal_term const&, pre_typed_term::var_t const&, legal_term const&);
 
 }
