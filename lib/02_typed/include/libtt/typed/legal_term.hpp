@@ -14,6 +14,8 @@ struct legal_term
 
     explicit legal_term(derivation const&);
 
+    bool operator==(legal_term const&) const = default;
+
 private:
     explicit legal_term(judgement&&);
 };

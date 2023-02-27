@@ -45,6 +45,7 @@ struct derivation
     // The member variable `ty` in `var_t`, `app_t` and `abs_t` is technically redundant because its value can always
     // be derived ether by a lookup in the context (for the var-case) or by inspecting the conclusions of the premisses.
 
+    // TODO all fields of var_t, app_t and abs_t must be private because changing them will, in general, result in an invalid derivation
     struct var_t
     {
         context ctx;
