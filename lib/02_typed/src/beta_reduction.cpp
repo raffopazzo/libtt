@@ -8,7 +8,7 @@ static bool is_redex(pre_typed_term::var_t const&) { return false; }
 static bool is_redex(pre_typed_term::app_t const& x) { return is_abs(x.left.get()); }
 static bool is_redex(pre_typed_term::abs_t const&) { return false; }
 static bool is_redex(pre_typed_term const& x) { return std::visit([] (auto const& x) { return is_redex(x); }, x.value); }
-bool is_redex(legal_term const& x) { return is_redex(x.term); }
+bool is_redex(legal_term const& x) { return is_redex(x.term()); }
 
 // num_redexes
 
@@ -26,7 +26,7 @@ static std::size_t num_redexes(pre_typed_term const& x)
 
 std::size_t num_redexes(legal_term const& x)
 {
-    return num_redexes(x.term);
+    return num_redexes(x.term());
 }
 
 // beta_normalize
@@ -60,9 +60,7 @@ legal_term beta_normalize(legal_term const& x)
             return pre_typed_term::abs(x.var, x.var_type, reduce(x.body.get()));
         }
     };
-    auto n = x;
-    n.term = std::visit(reducing_visitor{}, x.term.value);
-    return n;
+    return legal_term(x.ctx(), std::visit(reducing_visitor{}, x.term().value), x.ty());
 }
 
 }

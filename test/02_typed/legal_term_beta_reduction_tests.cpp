@@ -19,10 +19,10 @@ std::ostream& operator<<(std::ostream& os, pre_typed_term const& x) { return pre
 std::ostream& operator<<(std::ostream& os, legal_term const& x)
 {
     os << '{';
-    for (auto const& kv: x.ctx.decls)
+    for (auto const& kv: x.ctx().decls)
         os << kv;
     os << '}';
-    return os << " => " << x.term << " : " << x.ty;
+    return os << " => " << x.term() << " : " << x.ty();
 }
 
 }
@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(identity_reduces_to_argument)
     BOOST_TEST(not is_redex(n));
     BOOST_TEST(is_beta_normal(n));
     BOOST_TEST(beta_normalize(n) == n);
-    BOOST_TEST(n.term == x);
+    BOOST_TEST(n.term() == x);
 }
 
 BOOST_AUTO_TEST_CASE(applications_with_function_from_context_dont_reduce)
@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(can_beta_reduce_recursively)
     BOOST_TEST(not is_redex(n));
     BOOST_TEST(is_beta_normal(n));
     BOOST_TEST(beta_normalize(n) == n);
-    BOOST_TEST(n.term == pre_typed_term::abs("x", s, x));
+    BOOST_TEST(n.term() == pre_typed_term::abs("x", s, x));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

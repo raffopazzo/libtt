@@ -29,9 +29,9 @@ BOOST_AUTO_TEST_CASE(constructor_tests)
     context const ctx{{{pre_typed_term::var_t("x"), s}}};
 
     auto const mx = legal_term(type_assign(ctx, x).value());
-    BOOST_TEST(mx.ctx.decls == ctx.decls, boost::test_tools::per_element{});
-    BOOST_TEST(mx.term == x);
-    BOOST_TEST(mx.ty == s);
+    BOOST_TEST(mx.ctx().decls == ctx.decls, boost::test_tools::per_element{});
+    BOOST_TEST(mx.term() == x);
+    BOOST_TEST(mx.ty() == s);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

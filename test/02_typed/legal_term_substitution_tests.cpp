@@ -56,9 +56,9 @@ BOOST_AUTO_TEST_CASE(if_z_not_free_var_in_m_it_should_succeed_without_changes)
     BOOST_TEST(result.has_value());
     if (result)
     {
-        BOOST_TEST(result->ctx.decls == ctx.decls, boost::test_tools::per_element{});
-        BOOST_TEST(result->term == x);
-        BOOST_TEST(result->ty == s);
+        BOOST_TEST(result->ctx().decls == ctx.decls, boost::test_tools::per_element{});
+        BOOST_TEST(result->term() == x);
+        BOOST_TEST(result->ty() == s);
     }
 }
 
@@ -87,9 +87,9 @@ BOOST_AUTO_TEST_CASE(if_m_and_n_have_same_type_it_should_succeed_and_remove_x_fr
     if (result)
     {
         context const resulting_context{{{pre_typed_term::var_t("y"), s}}};
-        BOOST_TEST(result->ctx.decls == resulting_context.decls, boost::test_tools::per_element{});
-        BOOST_TEST(result->term == y);
-        BOOST_TEST(result->ty == s);
+        BOOST_TEST(result->ctx().decls == resulting_context.decls, boost::test_tools::per_element{});
+        BOOST_TEST(result->term() == y);
+        BOOST_TEST(result->ty() == s);
     }
 }
 
@@ -120,9 +120,9 @@ BOOST_AUTO_TEST_CASE(substitution_tests)
     if (result)
     {
         context const resulting_context{{{pre_typed_term::var_t("y"), s}, {pre_typed_term::var_t("id"), s_to_s}}};
-        BOOST_TEST(result->ctx.decls == resulting_context.decls, boost::test_tools::per_element{});
-        BOOST_TEST(result->term == pre_typed_term::app(id, y));
-        BOOST_TEST(result->ty == s);
+        BOOST_TEST(result->ctx().decls == resulting_context.decls, boost::test_tools::per_element{});
+        BOOST_TEST(result->term() == pre_typed_term::app(id, y));
+        BOOST_TEST(result->ty() == s);
     }
 }
 

@@ -12,24 +12,24 @@ std::optional<type> context::operator[](pre_typed_term::var_t const& v) const
 }
 
 derivation::var_t::var_t(context ctx, pre_typed_term::var_t var, type ty) :
-    ctx(std::move(ctx)),
-    var(std::move(var)),
-    ty(std::move(ty))
+    m_ctx(std::move(ctx)),
+    m_var(std::move(var)),
+    m_ty(std::move(ty))
 { }
 
 derivation::app_t::app_t( context ctx, derivation fun, derivation arg, type ty) :
-    ctx(std::move(ctx)),
-    fun(std::move(fun)),
-    arg(std::move(arg)),
-    ty(std::move(ty))
+    m_ctx(std::move(ctx)),
+    m_fun(std::move(fun)),
+    m_arg(std::move(arg)),
+    m_ty(std::move(ty))
 { }
 
 derivation::abs_t::abs_t(context ctx, pre_typed_term::var_t var, type var_type, derivation body, type ty) :
-    ctx(std::move(ctx)),
-    var(std::move(var)),
-    var_type(std::move(var_type)),
-    body(std::move(body)),
-    ty(std::move(ty))
+    m_ctx(std::move(ctx)),
+    m_var(std::move(var)),
+    m_var_type(std::move(var_type)),
+    m_body(std::move(body)),
+    m_ty(std::move(ty))
 { }
 
 derivation::derivation(var_t x) : value(std::move(x)) {}
@@ -42,32 +42,27 @@ judgement conclusion_of(derivation const& x)
     {
         judgement operator()(derivation::var_t const& x) const
         {
-            return {x.ctx, statement(pre_typed_term(x.var), x.ty)};
+            return {x.ctx(), statement(pre_typed_term(x.var()), x.ty())};
         }
 
         judgement operator()(derivation::app_t const& x) const
         {
             return judgement(
-                x.ctx,
+                x.ctx(),
                 statement(
                     pre_typed_term::app(
-                        conclusion_of(x.fun.get()).stm.subject,
-                        conclusion_of(x.arg.get()).stm.subject
-                    ),
-                    x.ty
-                )
-            );
+                        conclusion_of(x.fun()).stm.subject,
+                        conclusion_of(x.arg()).stm.subject),
+                    x.ty()));
         }
 
         judgement operator()(derivation::abs_t const& x)
         {
             return judgement(
-                x.ctx,
+                x.ctx(),
                 statement(
-                    pre_typed_term::abs(x.var, x.var_type, conclusion_of(x.body.get()).stm.subject),
-                    x.ty
-                )       
-            );
+                    pre_typed_term::abs(x.var(), x.var_type(), conclusion_of(x.body()).stm.subject),
+                    x.ty()));
         }
     };
     return std::visit(visitor{}, x.value);
