@@ -2,6 +2,12 @@
 
 namespace libtt::typed {
 
+template <typename T>
+std::ostream& with_parens(std::ostream& os, T const& x)
+{
+    return pretty_print(os << '(', x) << ')';
+}
+
 static std::ostream& pretty_print(std::ostream& os, pre_typed_term::var_t const& x, type const& t)
 {
     return pretty_print(os << x.name << " : ", t);
@@ -12,11 +18,7 @@ static std::ostream& pretty_print(std::ostream& os, pre_typed_term const& x, typ
     if (is_var(x))
         pretty_print(os, x);
     else
-    {
-        os << '(';
-        pretty_print(os, x);
-        os << ')';
-    }
+        with_parens(os, x);
     return pretty_print(os << " : ", t);
 }
 
@@ -47,11 +49,7 @@ std::ostream& pretty_print(std::ostream& os, pre_typed_term const& x)
                 if (is_var(y))
                     pretty_print(os, y);
                 else
-                {
-                    os << '(';
-                    pretty_print(os, y);
-                    os << ')';
-                }
+                    with_parens(os, y);
             };
             impl(x.left.get());
             if (is_var(x.left.get()) and is_var(x.right.get()))
@@ -62,9 +60,8 @@ std::ostream& pretty_print(std::ostream& os, pre_typed_term const& x)
 
         std::ostream& operator()(pre_typed_term::abs_t const& x) const
         {
-            os << "lambda";
+            os << "lambda " << x.var.name;
             auto const* body_ptr = &x.body;
-            os << ' ' << x.var.name;
             pretty_print(os << " : ", x.var_type);
             while (auto const* const p = std::get_if<pre_typed_term::abs_t>(&body_ptr->get().value))
             {
@@ -72,8 +69,7 @@ std::ostream& pretty_print(std::ostream& os, pre_typed_term const& x)
                 pretty_print(os << " : ", p->var_type);
                 body_ptr = &p->body;
             }
-            os << " . ";
-            return pretty_print(os, body_ptr->get());
+            return pretty_print(os << " . ", body_ptr->get());
         }
     };
     return std::visit(visitor{os}, x.value);
@@ -84,11 +80,7 @@ std::ostream& pretty_print(std::ostream& os, statement const& x)
     if (is_var(x.subject))
         pretty_print(os, x.subject);
     else
-    {
-        os << '(';
-        pretty_print(os, x.subject);
-        os << ')';
-    }
+        with_parens(os, x.subject);
     return pretty_print(os << " : ", x.ty);
 }
 
@@ -108,7 +100,7 @@ std::ostream& pretty_print(std::ostream& os, type const& x)
             if (is_var(x.dom.get()))
                 pretty_print(os, x.dom.get());
             else
-                pretty_print(os << "(", x.dom.get()) << ")";
+                with_parens(os, x.dom.get());
             os << " -> ";
             return pretty_print(os, x.img.get());
         }

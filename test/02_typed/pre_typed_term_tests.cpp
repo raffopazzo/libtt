@@ -49,7 +49,8 @@ BOOST_AUTO_TEST_CASE(var_tests)
     BOOST_TEST(y == pre_typed_term::var("y"));
     BOOST_TEST(x != y);
     BOOST_TEST(y != x);
-    BOOST_TEST(is_var(x));
+    BOOST_REQUIRE(is_var(x));
+    BOOST_REQUIRE(is_var(y));
     BOOST_TEST(not is_app(x));
     BOOST_TEST(not is_abs(x));
     BOOST_TEST(std::get<pre_typed_term::var_t>(x.value).name == "x");
@@ -69,7 +70,7 @@ BOOST_AUTO_TEST_CASE(app_tests)
     BOOST_TEST(xy != yx);
     BOOST_TEST(yx != xy);
     BOOST_TEST(not is_var(xy));
-    BOOST_TEST(is_app(xy));
+    BOOST_REQUIRE(is_app(xy));
     BOOST_TEST(not is_abs(xy));
     BOOST_TEST(std::get<pre_typed_term::app_t>(xy.value).left.get() == pre_typed_term::var("x"));
     BOOST_TEST(std::get<pre_typed_term::app_t>(xy.value).right.get() == pre_typed_term::var("y"));
@@ -90,7 +91,7 @@ BOOST_AUTO_TEST_CASE(abs_tests)
     BOOST_TEST(fy == pre_typed_term::abs("y", type::var("t"), xy));
     BOOST_TEST(not is_var(fx));
     BOOST_TEST(not is_app(fx));
-    BOOST_TEST(is_abs(fx));
+    BOOST_REQUIRE(is_abs(fx));
     BOOST_TEST(std::get<pre_typed_term::abs_t>(fx.value).var == pre_typed_term::var_t("x"));
     BOOST_TEST(std::get<pre_typed_term::abs_t>(fx.value).var_type == type::var("s"));
     BOOST_TEST(std::get<pre_typed_term::abs_t>(fx.value).body.get() == xy);

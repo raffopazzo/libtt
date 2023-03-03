@@ -2,6 +2,12 @@
 
 namespace libtt::untyp {
 
+template <typename T>
+std::ostream& with_parens(std::ostream& os, T const& x)
+{
+    return pretty_print(os << '(', x) << ')';
+}
+
 namespace detail {
 
 struct pretty_print_visitor
@@ -25,11 +31,7 @@ std::ostream& pretty_print_visitor::operator()(term::app_t const& x)
         if (is_var(y))
             pretty_print(os, y);
         else
-        {
-            os << '(';
-            pretty_print(os, y);
-            os << ')';
-        }
+            with_parens(os, y);
     };
     impl(x.left.get());
     if (is_var(x.left.get()) and is_var(x.right.get()))
@@ -40,16 +42,14 @@ std::ostream& pretty_print_visitor::operator()(term::app_t const& x)
 
 std::ostream& pretty_print_visitor::operator()(term::abs_t const& x)
 {
-    os << "lambda";
+    os << "lambda " << x.var.name;
     auto const* body_ptr = &x.body;
-    os << ' ' << x.var.name;
     while (auto const* const p = std::get_if<term::abs_t>(&body_ptr->get().value))
     {
         os << ' ' << p->var.name;
         body_ptr = &p->body;
     }
-    os << " . ";
-    return pretty_print(os, body_ptr->get());
+    return pretty_print(os << " . ", body_ptr->get());
 }
 
 }
