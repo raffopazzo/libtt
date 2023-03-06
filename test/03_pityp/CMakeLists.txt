@@ -14,6 +14,10 @@ add_executable(pi_type_tests pi_type_tests.cpp)
 add_test(NAME pi_type_tests COMMAND pi_type_tests)
 target_link_libraries(pi_type_tests PUBLIC libtt::pityp)
 
+add_executable(pityp_context_tests pityp_context_tests.cpp)
+add_test(NAME pityp_context_tests COMMAND pityp_context_tests)
+target_link_libraries(pityp_context_tests PUBLIC libtt::pityp)
+
 add_executable(pityp_term_tests pityp_term_tests.cpp)
 add_test(NAME pityp_term_tests COMMAND pityp_term_tests)
 target_link_libraries(pityp_term_tests PUBLIC libtt::pityp)

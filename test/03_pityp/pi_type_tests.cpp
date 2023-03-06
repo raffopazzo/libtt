@@ -54,6 +54,9 @@ BOOST_AUTO_TEST_CASE(type_variable_tests)
     BOOST_TEST(not is_pi(t));
     BOOST_TEST(std::get<type::var_t>(s.value).name == "s");
     BOOST_TEST(std::get<type::var_t>(t.value).name == "t");
+
+    BOOST_TEST(free_type_vars(s) == std::set<type::var_t>{type::var_t("s")}, boost::test_tools::per_element{});
+    BOOST_TEST(free_type_vars(t) == std::set<type::var_t>{type::var_t("t")}, boost::test_tools::per_element{});
 }
 
 BOOST_AUTO_TEST_CASE(arrow_type_tests)
@@ -104,6 +107,13 @@ BOOST_AUTO_TEST_CASE(arrow_type_tests)
     BOOST_TEST(not is_pi(h));
     BOOST_TEST(std::get<type::arr_t>(j.value).dom.get() == g);
     BOOST_TEST(std::get<type::arr_t>(j.value).img.get() == h);
+
+    BOOST_TEST(
+        free_type_vars(f) == std::set<type::var_t>({type::var_t("s"), type::var_t("t")}),
+        boost::test_tools::per_element{});
+    BOOST_TEST(free_type_vars(g) == free_type_vars(f), boost::test_tools::per_element{});
+    BOOST_TEST(free_type_vars(h) == free_type_vars(f), boost::test_tools::per_element{});
+    BOOST_TEST(free_type_vars(j) == free_type_vars(f), boost::test_tools::per_element{});
 }
 
 BOOST_AUTO_TEST_CASE(pi_type_tests)
@@ -140,6 +150,10 @@ BOOST_AUTO_TEST_CASE(pi_type_tests)
     BOOST_REQUIRE(is_pi(r));
     BOOST_TEST(std::get<type::pi_t>(r.value).var.name == "s");
     BOOST_TEST(std::get<type::pi_t>(r.value).body.get() == q);
+
+    BOOST_TEST(free_type_vars(p) == std::set<type::var_t>{}, boost::test_tools::per_element{});
+    BOOST_TEST(free_type_vars(q) == std::set<type::var_t>{type::var_t("s")}, boost::test_tools::per_element{});
+    BOOST_TEST(free_type_vars(r) == std::set<type::var_t>{}, boost::test_tools::per_element{});
 }
 
 BOOST_AUTO_TEST_CASE(pretty_print_tests)

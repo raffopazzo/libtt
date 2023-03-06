@@ -5,6 +5,7 @@
 #include <compare>
 #include <string>
 #include <variant>
+#include <set>
 
 namespace libtt::pityp {
 
@@ -50,5 +51,7 @@ struct type
 inline bool is_var(type const& x) { return std::holds_alternative<type::var_t>(x.value); }
 inline bool is_arr(type const& x) { return std::holds_alternative<type::arr_t>(x.value); }
 inline bool is_pi(type const& x) { return std::holds_alternative<type::pi_t>(x.value); }
+
+std::set<type::var_t> free_type_vars(type const& ty);
 
 }
