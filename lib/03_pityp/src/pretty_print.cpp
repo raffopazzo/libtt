@@ -110,33 +110,54 @@ private:
 //    }
 //    return pretty_print(os << " : ", t);
 //}
-//
-// std::ostream& pretty_print(std::ostream& os, judgement const& x)
-// {
-//     os << '{';
-//     bool comma = false;
-//     for (auto const& decl : x.ctx.decls)
-//         pretty_print(std::exchange(comma, true) ? os << ", " : os, decl.first, decl.second);
-//     return pretty_print(os << "} => ", x.stm);
-// }
+
+// context
+std::ostream& pretty_print(std::ostream& os, context const& ctx)
+{
+    struct visitor
+    {
+        std::ostream& os;
+        void operator()(context::type_decl_t const& x) const
+        {
+            os << x.subject.name << " : *";
+        }
+
+        void operator()(context::var_decl_t const& x) const
+        {
+            os << x.subject.name << " : ";
+            if (is_var(x.ty))
+                pretty_print(os, x.ty);
+            else
+                with_parens(os, x.ty);
+        }
+    };
+    os << '{';
+    bool comma = false;
+    for (auto const& decl : decls_of(ctx))
+        std::visit(visitor{std::exchange(comma, true) ? os << ", " : os}, decl);
+    return os << '}';
+}
+
+// judgement
+
+std::ostream& pretty_print(std::ostream& os, judgement<term_stm_t> const& x)
+{
+    pretty_print(os, x.ctx) << " => ";
+    if (is_var(x.stm.subject))
+        pretty_print(os, x.stm.subject);
+    else
+        with_parens(os, x.stm.subject);
+    return pretty_print(os << " : ", x.stm.ty);
+}
+
+// pre_typed_term
 
 std::ostream& pretty_print(std::ostream& os, pre_typed_term const& x)
 {
     return std::visit(pretty_print_visitor{os}, x.value);
 }
 
-// std::ostream& pretty_print(std::ostream& os, statement const& x)
-// {
-//     if (is_var(x.subject))
-//         pretty_print(os, x.subject);
-//     else
-//     {
-//         os << '(';
-//         pretty_print(os, x.subject);
-//         os << ')';
-//     }
-//     return pretty_print(os << " : ", x.ty);
-// }
+// type
 
 std::ostream& pretty_print(std::ostream& os, type const& x)
 {
@@ -154,7 +175,7 @@ std::ostream& pretty_print(std::ostream& os, type const& x)
             if (is_var(x.dom.get()))
                 pretty_print(os, x.dom.get());
             else
-                pretty_print(os << "(", x.dom.get()) << ")";
+                with_parens(os, x.dom.get());
             os << " -> ";
             return pretty_print(os, x.img.get());
         }

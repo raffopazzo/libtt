@@ -18,13 +18,13 @@ add_executable(pityp_context_tests pityp_context_tests.cpp)
 add_test(NAME pityp_context_tests COMMAND pityp_context_tests)
 target_link_libraries(pityp_context_tests PUBLIC libtt::pityp)
 
+add_executable(pityp_derivation_tests pityp_derivation_tests.cpp)
+add_test(NAME pityp_derivation_tests COMMAND pityp_derivation_tests)
+target_link_libraries(pityp_derivation_tests PUBLIC libtt::pityp)
+
 add_executable(pityp_term_tests pityp_term_tests.cpp)
 add_test(NAME pityp_term_tests COMMAND pityp_term_tests)
 target_link_libraries(pityp_term_tests PUBLIC libtt::pityp)
-
-# add_executable(type_assign_tests type_assign_tests.cpp)
-# add_test(NAME type_assign_tests COMMAND type_assign_tests)
-# target_link_libraries(type_assign_tests PUBLIC libtt::pityp)
 # 
 # add_executable(term_search_tests term_search_tests.cpp)
 # add_test(NAME term_search_tests COMMAND term_search_tests)

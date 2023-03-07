@@ -150,10 +150,96 @@ BOOST_AUTO_TEST_CASE(pi_type_tests)
     BOOST_REQUIRE(is_pi(r));
     BOOST_TEST(std::get<type::pi_t>(r.value).var.name == "s");
     BOOST_TEST(std::get<type::pi_t>(r.value).body.get() == q);
+}
+
+BOOST_AUTO_TEST_CASE(binding_and_free_type_vars_tests)
+{
+    auto const s = type::var("s");
+    auto const t = type::var("t");
+    auto const p = type::pi("s", type::arr(s, s));
+    auto const q = type::pi("t", type::arr(s, t));
+    auto const r = type::pi("s", type::pi("t", type::arr(s, t)));
 
     BOOST_TEST(free_type_vars(p) == std::set<type::var_t>{}, boost::test_tools::per_element{});
     BOOST_TEST(free_type_vars(q) == std::set<type::var_t>{type::var_t("s")}, boost::test_tools::per_element{});
     BOOST_TEST(free_type_vars(r) == std::set<type::var_t>{}, boost::test_tools::per_element{});
+
+    BOOST_TEST(
+        binding_and_free_type_vars(p) == std::set<type::var_t>{type::var_t("s")},
+        boost::test_tools::per_element{});
+    BOOST_TEST(
+        binding_and_free_type_vars(q) == std::set<type::var_t>({type::var_t("s"), type::var_t("t")}),
+        boost::test_tools::per_element{});
+    BOOST_TEST(
+        binding_and_free_type_vars(r) == std::set<type::var_t>({type::var_t("s"), type::var_t("t")}),
+        boost::test_tools::per_element{});
+}
+
+BOOST_AUTO_TEST_CASE(replace_tests)
+{
+    auto const s = type::var("s");
+    auto const t = type::var("t");
+    auto const p = type::pi("s", type::arr(s, s));
+    auto const q = type::pi("t", type::arr(s, t));
+
+    BOOST_TEST(replace(p, type::var_t("s"), type::var_t("t")) == p);
+    BOOST_TEST(replace(q, type::var_t("s"), type::var_t("t")) == type::pi("t", type::arr(t, t)));
+}
+
+BOOST_AUTO_TEST_CASE(rename_tests)
+{
+    auto const s = type::var("s");
+    auto const p = type::pi_t(type::var_t("s"), type::arr(s, s));
+
+    auto const p2 = rename(p);
+    BOOST_TEST(p2.var != p.var);
+    BOOST_TEST(p2 == type::pi_t(p2.var, type::arr(type(p2.var), type(p2.var))));
+    auto const p3 = rename(p, {p2.var});
+    BOOST_TEST(p3.var != p2.var);
+    BOOST_TEST(p3 == type::pi_t(p3.var, type::arr(type(p3.var), type(p3.var))));
+}
+
+BOOST_AUTO_TEST_CASE(alpha_equivalence_test)
+{
+    auto const s = type::var("s");
+    auto const t = type::var("t");
+    auto const p = type::pi("s", type::arr(s, s));
+    auto const q = type::pi("t", type::arr(s, t));
+    auto const r = type::pi("t", type::arr(t, t));
+
+    BOOST_TEST(is_alpha_equivalent(s, s));
+    BOOST_TEST(not is_alpha_equivalent(s, t));
+    BOOST_TEST(not is_alpha_equivalent(t, s));
+    BOOST_TEST(is_alpha_equivalent(p, r));
+    BOOST_TEST(is_alpha_equivalent(r, p));
+    BOOST_TEST(not is_alpha_equivalent(p, q));
+    BOOST_TEST(not is_alpha_equivalent(q, p));
+    BOOST_TEST(not is_alpha_equivalent(q, r));
+    BOOST_TEST(not is_alpha_equivalent(r, q));
+    
+    auto const s_to_t = type::pi("s", type::pi("t", type::arr(s, t)));
+    auto const t_to_s = type::pi("t", type::pi("s", type::arr(t, s)));
+    BOOST_TEST(is_alpha_equivalent(s_to_t, t_to_s));
+}
+
+BOOST_AUTO_TEST_CASE(substitution_tests)
+{
+    auto const s = type::var("s");
+    auto const t = type::var("t");
+    auto const u = type::var("u");
+    auto const s_to_s = type::arr(s, s);
+    auto const s_to_t = type::arr(s, t);
+    auto const t_to_t = type::arr(t, t);
+    auto const p = type::pi("s", s_to_s);
+    auto const q = type::pi("s", s_to_t);
+
+    BOOST_TEST(substitute(s, type::var_t("s"), t) == t);
+    BOOST_TEST(substitute(s, type::var_t("t"), t) == s);
+    BOOST_TEST(substitute(s_to_s, type::var_t("s"), t) == t_to_t);
+    BOOST_TEST(substitute(s_to_s, type::var_t("t"), t) == s_to_s);
+    BOOST_TEST(substitute(p, type::var_t("s"), t) == p);
+    BOOST_TEST(substitute(q, type::var_t("t"), u) == type::pi("s", type::arr(s, u)));
+    BOOST_TEST(is_alpha_equivalent(substitute(q, type::var_t("t"), s), type::pi("u", type::arr(u, s))));
 }
 
 BOOST_AUTO_TEST_CASE(pretty_print_tests)

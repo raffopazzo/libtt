@@ -52,6 +52,13 @@ inline bool is_var(type const& x) { return std::holds_alternative<type::var_t>(x
 inline bool is_arr(type const& x) { return std::holds_alternative<type::arr_t>(x.value); }
 inline bool is_pi(type const& x) { return std::holds_alternative<type::pi_t>(x.value); }
 
-std::set<type::var_t> free_type_vars(type const& ty);
+std::set<type::var_t> free_type_vars(type const&);
+std::set<type::var_t> binding_and_free_type_vars(type const&);
+
+type::pi_t rename(type::pi_t const&, std::set<type::var_t> const& forbidden_names = {});
+type replace(type const&, type::var_t const& from, type::var_t const& to);
+type substitute(type const&, type::var_t const&, type const&);
+
+bool is_alpha_equivalent(type const&, type const&);
 
 }
