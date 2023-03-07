@@ -107,9 +107,26 @@ derivation::app2_t::app2_t( context ctx, derivation fun, type arg, type ty) :
     m_ty(std::move(ty))
 { }
 
+derivation::abs1_t::abs1_t(context ctx, pre_typed_term::var_t var, type var_type, derivation body, type ty) :
+    m_ctx(std::move(ctx)),
+    m_var(std::move(var)),
+    m_var_type(std::move(var_type)),
+    m_body(std::move(body)),
+    m_ty(std::move(ty))
+{ }
+
+derivation::abs2_t::abs2_t(context ctx, type::var_t var, derivation body, type ty) :
+    m_ctx(std::move(ctx)),
+    m_var(std::move(var)),
+    m_body(std::move(body)),
+    m_ty(std::move(ty))
+{ }
+
 derivation::derivation(var_t x) : value(std::move(x)) {}
 derivation::derivation(app1_t x) : value(std::move(x)) {}
 derivation::derivation(app2_t x) : value(std::move(x)) {}
+derivation::derivation(abs1_t x) : value(std::move(x)) {}
+derivation::derivation(abs2_t x) : value(std::move(x)) {}
 
 term_judgement_t conclusion_of(derivation const& x)
 {
@@ -142,14 +159,23 @@ term_judgement_t conclusion_of(derivation const& x)
                     x.ty()));
         }
 
-//      judgement operator()(derivation::abs_t const& x)
-//      {
-//          return judgement(
-//              x.ctx(),
-//              statement(
-//                  pre_typed_term::abs(x.var(), x.var_type(), conclusion_of(x.body()).stm.subject),
-//                  x.ty()));
-//      }
+        term_judgement_t operator()(derivation::abs1_t const& x)
+        {
+            return term_judgement_t(
+                x.ctx(),
+                term_stm_t(
+                    pre_typed_term::abs(x.var(), x.var_type(), conclusion_of(x.body()).stm.subject),
+                    x.ty()));
+        }
+
+        term_judgement_t operator()(derivation::abs2_t const& x)
+        {
+            return term_judgement_t(
+                x.ctx(),
+                term_stm_t(
+                    pre_typed_term::abs(x.var(), conclusion_of(x.body()).stm.subject),
+                    x.ty()));
+        }
     };
     return std::visit(visitor{}, x.value);
 }
@@ -179,12 +205,7 @@ std::optional<derivation> type_assign(context const& ctx, pre_typed_term const& 
             if (not right_d) return std::nullopt;
             auto const right_conclusion = conclusion_of(*right_d);
             if (right_conclusion.stm.ty != p_abs->dom.get()) return std::nullopt;
-            return derivation(derivation::app1_t(
-                ctx,
-                std::move(*left_d),
-                std::move(*right_d),
-                p_abs->img.get()
-            ));
+            return derivation(derivation::app1_t(ctx, std::move(*left_d), std::move(*right_d), p_abs->img.get()));
         }
 
         std::optional<derivation> operator()(pre_typed_term::app2_t const& x) const
@@ -194,37 +215,32 @@ std::optional<derivation> type_assign(context const& ctx, pre_typed_term const& 
             auto const left_conclusion = conclusion_of(*left_d);
             auto p_pi = std::get_if<type::pi_t>(&left_conclusion.stm.ty.value);
             if (not p_pi)  return std::nullopt;
-            return derivation(derivation::app2_t(
-                ctx,
-                std::move(*left_d),
-                x.right,
-                substitute(p_pi->body.get(), p_pi->var, x.right)
-            ));
+            auto const ty = substitute(p_pi->body.get(), p_pi->var, x.right);
+            return derivation(derivation::app2_t(ctx, std::move(*left_d), x.right, ty));
         }
 
         std::optional<derivation> operator()(pre_typed_term::abs1_t const& x) const
         {
-//          auto ext_ctx = ctx;
-//          ext_ctx.decls[x.var] = x.var_type;
-//          if (auto body_derivation = type_assign(ext_ctx, x.body.get()))
-//          {
-//              auto function_type = type::arr(x.var_type, conclusion_of(*body_derivation).stm.ty);
-//              return derivation(derivation::abs_t(
-//                  ctx,
-//                  x.var,
-//                  x.var_type,
-//                  std::move(*body_derivation),
-//                  function_type
-//              ));
-//          }
-//          else
-//              return std::nullopt;
+            if (auto ext_ctx = extend(ctx, x.var, x.var_type))
+                if (auto body = type_assign(*ext_ctx, x.body.get()))
+                {
+                    // store type of conclusion before moving body
+                    auto const ty = type::arr(x.var_type, conclusion_of(*body).stm.ty);
+                    return derivation(derivation::abs1_t(ctx, x.var, x.var_type, std::move(*body), ty));
+                }
             return std::nullopt;
         }
 
         std::optional<derivation> operator()(pre_typed_term::abs2_t const& x) const
         {
-            return std::nullopt; // TODO
+            if (auto ext_ctx = extend(ctx, x.var))
+                if (auto body = type_assign(*ext_ctx, x.body.get()))
+                {
+                    // store type of conclusion before moving body
+                    auto const ty = type::pi(x.var, conclusion_of(*body).stm.ty);
+                    return derivation(derivation::abs2_t(ctx, x.var, std::move(*body), ty));
+                }
+            return std::nullopt;
         }
     };
     return std::visit(visitor{ctx}, x.value);

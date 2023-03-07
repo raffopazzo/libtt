@@ -149,7 +149,7 @@ struct derivation
         app1_t& operator=(app1_t&&) = default;
 
     private:
-        app1_t(context, derivation, derivation, type ty);
+        app1_t(context, derivation, derivation, type);
 
         context m_ctx;
         rec_t m_fun;
@@ -182,12 +182,62 @@ struct derivation
         friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
     };
 
-    using value_t = std::variant<var_t, app1_t, app2_t>;
+    struct abs1_t
+    {
+        auto const& ctx() const { return m_ctx; }
+        auto const& var() const { return m_var; }
+        auto const& var_type() const { return m_var_type; }
+        auto const& body() const { return m_body.get(); }
+        auto const& ty() const { return m_ty; }
+
+        abs1_t(abs1_t const&) = default;
+        abs1_t(abs1_t&&) = default;
+        abs1_t& operator=(abs1_t const&) = default;
+        abs1_t& operator=(abs1_t&&) = default;
+
+    private:
+        abs1_t(context, pre_typed_term::var_t, type var_type, derivation, type);
+
+        context m_ctx;
+        pre_typed_term::var_t m_var;
+        type m_var_type;
+        rec_t m_body;
+        type m_ty;
+
+        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+    };
+
+    struct abs2_t
+    {
+        auto const& ctx() const { return m_ctx; }
+        auto const& var() const { return m_var; }
+        auto const& body() const { return m_body.get(); }
+        auto const& ty() const { return m_ty; }
+
+        abs2_t(abs2_t const&) = default;
+        abs2_t(abs2_t&&) = default;
+        abs2_t& operator=(abs2_t const&) = default;
+        abs2_t& operator=(abs2_t&&) = default;
+
+    private:
+        abs2_t(context, type::var_t, derivation, type);
+
+        context m_ctx;
+        type::var_t m_var;
+        rec_t m_body;
+        type m_ty;
+
+        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+    };
+
+    using value_t = std::variant<var_t, app1_t, app2_t, abs1_t, abs2_t>;
     value_t value;
 
     explicit derivation(var_t);
     explicit derivation(app1_t);
     explicit derivation(app2_t);
+    explicit derivation(abs1_t);
+    explicit derivation(abs2_t);
 };
 
 term_judgement_t conclusion_of(derivation const&);
