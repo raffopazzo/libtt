@@ -5,9 +5,18 @@ namespace libtt::pityp {
 namespace {
 
 template <typename T>
-std::ostream& with_parens(std::ostream& os, T const& x)
+std::ostream& pretty_print(std::ostream& os, std::vector<T> const& xs)
 {
-    return pretty_print(os << '(', x) << ')';
+    bool comma = false;
+    for (auto const& x: xs)
+        pretty_print(std::exchange(comma, true) ? os << ", " : os, x);
+    return os;
+}
+
+template <typename T>
+std::ostream& with_parens(std::ostream& os, T const& x, std::pair<char, char> parens={'(', ')'})
+{
+    return pretty_print(os << parens.first, x) << parens.second;
 }
 
 static std::ostream& print_var_decl(std::ostream& os, pre_typed_term::var_t const& var, type const& ty)
@@ -93,49 +102,27 @@ private:
 
 } // anon namespace
 
-//static std::ostream& pretty_print(std::ostream& os, pre_typed_term::var_t const& x, type const& t)
-//{
-//    return pretty_print(os << x.name << " : ", t);
-//}
-//
-//static std::ostream& pretty_print(std::ostream& os, pre_typed_term const& x, type const& t)
-//{
-//    if (is_var(x))
-//        pretty_print(os, x);
-//    else
-//    {
-//        os << '(';
-//        pretty_print(os, x);
-//        os << ')';
-//    }
-//    return pretty_print(os << " : ", t);
-//}
-
 // context
+
 std::ostream& pretty_print(std::ostream& os, context const& ctx)
 {
-    struct visitor
-    {
-        std::ostream& os;
-        void operator()(context::type_decl_t const& x) const
-        {
-            os << x.subject.name << " : *";
-        }
+    return with_parens(os, decls_of(ctx), {'{', '}'});
+}
 
-        void operator()(context::var_decl_t const& x) const
-        {
-            os << x.subject.name << " : ";
-            if (is_var(x.ty))
-                pretty_print(os, x.ty);
-            else
-                with_parens(os, x.ty);
-        }
-    };
-    os << '{';
-    bool comma = false;
-    for (auto const& decl : decls_of(ctx))
-        std::visit(visitor{std::exchange(comma, true) ? os << ", " : os}, decl);
-    return os << '}';
+std::ostream& pretty_print(std::ostream& os, context::decl_t const& x)
+{
+    return std::visit([&os] (auto const& v) -> std::ostream& { return pretty_print(os, v); }, x);
+}
+
+std::ostream& pretty_print(std::ostream& os, context::type_decl_t const& x)
+{
+    return os << x.subject.name << " : *";
+}
+
+std::ostream& pretty_print(std::ostream& os, context::var_decl_t const& x)
+{
+    os << x.subject.name << " : ";
+    return is_var(x.ty) ? pretty_print(os, x.ty) : with_parens(os, x.ty);
 }
 
 // judgement
@@ -150,6 +137,14 @@ std::ostream& pretty_print(std::ostream& os, judgement<term_stm_t> const& x)
     return pretty_print(os << " : ", x.stm.ty);
 }
 
+std::ostream& pretty_print(std::ostream& os, legal_term const& x)
+{
+    pretty_print(os, x.ctx());
+    pretty_print(os << " => ", x.term());
+    pretty_print(os << " : ", x.ty());
+    return os;
+}
+
 // pre_typed_term
 
 std::ostream& pretty_print(std::ostream& os, pre_typed_term const& x)
@@ -161,38 +156,34 @@ std::ostream& pretty_print(std::ostream& os, pre_typed_term const& x)
 
 std::ostream& pretty_print(std::ostream& os, type const& x)
 {
-    struct visitor
+    return std::visit([&os] (auto const& v) -> std::ostream& { return pretty_print(os, v); }, x.value);
+}
+
+std::ostream& pretty_print(std::ostream& os, type::var_t const& x)
+{
+    return os << x.name;
+}
+
+std::ostream& pretty_print(std::ostream& os, type::arr_t const& x)
+{
+    if (is_var(x.dom.get()))
+        pretty_print(os, x.dom.get());
+    else
+        with_parens(os, x.dom.get());
+    os << " -> ";
+    return pretty_print(os, x.img.get());
+}
+
+std::ostream& pretty_print(std::ostream& os, type::pi_t const& x)
+{
+    os << "pi " << x.var.name;
+    auto const* body_ptr = &x.body;
+    while (auto const* const p = std::get_if<type::pi_t>(&body_ptr->get().value))
     {
-        std::ostream& os;
-
-        std::ostream& operator()(type::var_t const& x) const
-        {
-            return os << x.name;
-        }
-
-        std::ostream& operator()(type::arr_t const& x) const
-        {
-            if (is_var(x.dom.get()))
-                pretty_print(os, x.dom.get());
-            else
-                with_parens(os, x.dom.get());
-            os << " -> ";
-            return pretty_print(os, x.img.get());
-        }
-
-        std::ostream& operator()(type::pi_t const& x) const
-        {
-            os << "pi " << x.var.name;
-            auto const* body_ptr = &x.body;
-            while (auto const* const p = std::get_if<type::pi_t>(&body_ptr->get().value))
-            {
-                os << ", " << p->var.name;
-                body_ptr = &p->body;
-            }
-            return pretty_print(os << " : * . ", body_ptr->get());
-        }
-    };
-    return std::visit(visitor{os}, x.value);
+        os << ", " << p->var.name;
+        body_ptr = &p->body;
+    }
+    return pretty_print(os << " : * . ", body_ptr->get());
 }
 
 }
