@@ -222,45 +222,48 @@ pre_typed_term substitute(pre_typed_term const& x, pre_typed_term::var_t const& 
     return std::visit(visitor{var, y}, x.value);
 }
 
-pre_typed_term substitute(pre_typed_term const& x, type::var_t const& alpha, type const& beta)
+pre_typed_term substitute(pre_typed_term const& x, type::var_t const& var, type const& ty)
 {
     struct visitor
     {
-        type::var_t const& alpha;
-        type const& beta;
+        type::var_t const& var;
+        type const& ty;
 
         pre_typed_term operator()(pre_typed_term::var_t const& x) const { return pre_typed_term(x); }
 
         pre_typed_term operator()(pre_typed_term::app1_t const& x) const
         {
             return pre_typed_term::app(
-                substitute(x.left.get(), alpha, beta),
-                substitute(x.right.get(), alpha, beta));
+                substitute(x.left.get(), var, ty),
+                substitute(x.right.get(), var, ty));
         }
 
         pre_typed_term operator()(pre_typed_term::app2_t const& x) const
         {
             return pre_typed_term::app(
-                substitute(x.left.get(), alpha, beta),
-                x.right == alpha ? beta : x.right);
+                substitute(x.left.get(), var, ty),
+                substitute(x.right, var, ty));
         }
 
         pre_typed_term operator()(pre_typed_term::abs1_t const& x) const
         {
-            return pre_typed_term::abs(x.var, x.var_type, substitute(x.body.get(), alpha, beta));
+            return pre_typed_term::abs(
+                x.var,
+                substitute(x.var_type, var, ty),
+                substitute(x.body.get(), var, ty));
         }
 
         pre_typed_term operator()(pre_typed_term::abs2_t const& x) const
         {
-            if (x.var == alpha)
+            if (x.var == var)
                 // Only free occurrences of `var` can be substituted; so if the binding variable is `var`,
                 // then all free occurrences of `var` in `body` are now bound and cannot be substituted.
                 return pre_typed_term(x);
             else
-                return pre_typed_term::abs(x.var, substitute(x.body.get(), var, y));
+                return pre_typed_term::abs(x.var, substitute(x.body.get(), var, ty));
         }
     };
-    return std::visit(visitor{var, y}, x.value);
+    return std::visit(visitor{var, ty}, x.value);
 }
 
 }

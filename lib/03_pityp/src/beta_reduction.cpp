@@ -37,15 +37,10 @@ std::size_t num_redexes(legal_term const& x)
 }
 
 // beta_normalize
-legal_term beta_normalize(legal_term const& x)
+static pre_typed_term one_step_reduction(pre_typed_term const& x)
 {
-    struct reducing_visitor
+    struct visitor
     {
-        pre_typed_term reduce(pre_typed_term const& x) const
-        {
-            return std::visit(*this, x.value);
-        }
-
         pre_typed_term operator()(pre_typed_term::var_t const& x) const
         {
             return pre_typed_term(x);
@@ -54,32 +49,40 @@ legal_term beta_normalize(legal_term const& x)
         pre_typed_term operator()(pre_typed_term::app1_t const& x) const
         {
             if (auto const* const abs = std::get_if<pre_typed_term::abs1_t>(&x.left.get().value))
-                return reduce(substitute(abs->body.get(), abs->var, x.right.get()));
+                return substitute(abs->body.get(), abs->var, x.right.get());
             else
-                return pre_typed_term::app(reduce(x.left.get()), reduce(x.right.get()));
+                return pre_typed_term::app(one_step_reduction(x.left.get()), one_step_reduction(x.right.get()));
         }
 
         pre_typed_term operator()(pre_typed_term::app2_t const& x) const
         {
             if (auto const* const abs = std::get_if<pre_typed_term::abs2_t>(&x.left.get().value))
-                return reduce(substitute(abs->body.get(), abs->var, x.right));
+                return substitute(abs->body.get(), abs->var, x.right);
             else
-                return pre_typed_term::app(reduce(x.left.get()), x.right);
+                return pre_typed_term::app(one_step_reduction(x.left.get()), x.right);
         }
 
         pre_typed_term operator()(pre_typed_term::abs1_t const& x) const
         {
             return pre_typed_term(x);
-            // return pre_typed_term::abs(x.var, x.var_type, reduce(x.body.get()));
+            // return pre_typed_term::abs(x.var, x.var_type, one_step_reduction(x.body.get()));
         }
 
         pre_typed_term operator()(pre_typed_term::abs2_t const& x) const
         {
             return pre_typed_term(x);
-            // return pre_typed_term::abs(x.var, x.var_type, reduce(x.body.get()));
+            // return pre_typed_term::abs(x.var, one_step_reduction(x.body.get()));
         }
     };
-    return legal_term(x.ctx(), std::visit(reducing_visitor{}, x.term().value), x.ty());
+    return std::visit(visitor{}, x.value);
+}
+
+legal_term beta_normalize(legal_term const& x)
+{
+    auto res = x.term();
+    while (num_redexes(res) > 0ul)
+        res = one_step_reduction(res);
+    return legal_term(x.ctx(), std::move(res), x.ty());
 }
 
 }
