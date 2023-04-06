@@ -1,12 +1,10 @@
 add_library(libtt_pityp_lib
-# include/libtt/pityp/alpha_equivalence.hpp
   include/libtt/pityp/beta_reduction.hpp
   include/libtt/pityp/derivation.hpp
   include/libtt/pityp/legal_term.hpp
   include/libtt/pityp/pretty_print.hpp
   include/libtt/pityp/pre_typed_term.hpp
   include/libtt/pityp/type.hpp
-# src/alpha_equivalence.cpp
   src/beta_reduction.cpp
   src/derivation.cpp
   src/legal_term.cpp
