@@ -44,7 +44,7 @@ std::optional<context> extend(context const& ctx, type::var_t const& x)
 
 std::optional<context> extend(context const& ctx, pre_typed_term::var_t const& x, type const& ty)
 {
-    // TODO should check if x not a type declaration
+    // TODO should check if x not already declared
     std::optional<context> res;
     if (not ctx.contains(type::var_t(x.name)) and
         std::ranges::all_of(free_type_vars(ty), [&] (type::var_t const& y) { return ctx.contains(y); }))
