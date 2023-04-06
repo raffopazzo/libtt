@@ -104,4 +104,30 @@ BOOST_AUTO_TEST_CASE(can_beta_reduce_recursively)
     BOOST_TEST(n.term() == pre_typed_term::abs("x", s, x));
 }
 
+BOOST_AUTO_TEST_CASE(should_reduce_consecutive_applications)
+{
+    context const ctx{{{pre_typed_term::var_t("y"), s}}};
+    auto const m =
+        legal_term(
+            type_assign(
+                ctx,
+                pre_typed_term::app(
+                    pre_typed_term::app(
+                        pre_typed_term::abs("f", s_to_s, pre_typed_term::var("f")),
+                        id),
+                    y)
+            ).value());
+    BOOST_TEST(num_redexes(m) == 1ul);
+    BOOST_TEST(not is_redex(m)); // it contains a redex, but it isn't one itself
+    BOOST_TEST(not is_beta_normal(m));
+    BOOST_TEST(beta_normalize(m) != m);
+
+    auto const n = beta_normalize(m);
+    BOOST_TEST(num_redexes(n) == 0ul);
+    BOOST_TEST(not is_redex(n));
+    BOOST_TEST(is_beta_normal(n));
+    BOOST_TEST(beta_normalize(n) == n);
+    BOOST_TEST(n.term() == y);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
