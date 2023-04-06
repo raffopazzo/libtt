@@ -72,4 +72,14 @@ inline bool is_app2(pre_typed_term const& x) { return std::holds_alternative<pre
 inline bool is_abs1(pre_typed_term const& x) { return std::holds_alternative<pre_typed_term::abs1_t>(x.value); }
 inline bool is_abs2(pre_typed_term const& x) { return std::holds_alternative<pre_typed_term::abs2_t>(x.value); }
 
+std::set<pre_typed_term::var_t> free_variables(pre_typed_term const&);
+std::set<pre_typed_term::var_t> binding_variables(pre_typed_term const&);
+std::set<pre_typed_term::var_t> binding_and_free_variables(pre_typed_term const&);
+
+pre_typed_term::abs1_t rename(pre_typed_term::abs1_t const&, std::set<pre_typed_term::var_t> const& forbidden_names = {});
+pre_typed_term::abs2_t rename(pre_typed_term::abs2_t const&, std::set<type::var_t> const& forbidden_names = {});
+pre_typed_term replace(pre_typed_term const&, pre_typed_term::var_t const& from, pre_typed_term::var_t const& to);
+pre_typed_term substitute(pre_typed_term const& x, pre_typed_term::var_t const& var, pre_typed_term const& y);
+pre_typed_term substitute(pre_typed_term const& x, type::var_t const&, type const&);
+
 }

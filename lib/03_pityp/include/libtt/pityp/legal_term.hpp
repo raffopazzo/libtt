@@ -27,7 +27,4 @@ private:
     type m_ty;
 };
 
-// std::optional<legal_term> substitute(legal_term const&, pre_typed_term::var_t const&, legal_term const&);
-legal_term beta_normalize(legal_term const& x);
-
 }

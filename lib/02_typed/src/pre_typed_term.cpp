@@ -71,7 +71,7 @@ std::set<pre_typed_term::var_t> binding_variables(pre_typed_term const& x)
             left_set.insert(std::make_move_iterator(right_set.begin()), std::make_move_iterator(right_set.end()));
             return left_set;
         }
-        std::set<pre_typed_term::var_t> operator()(pre_typed_term::abs_t const& x)
+        std::set<pre_typed_term::var_t> operator()(pre_typed_term::abs_t const& x) const
         {
             auto tmp = binding_variables(x.body.get());
             tmp.insert(x.var);

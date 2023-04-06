@@ -51,28 +51,4 @@ BOOST_AUTO_TEST_CASE(constructor_tests)
     BOOST_TEST(mx.ty() == s);
 }
 
-BOOST_AUTO_TEST_CASE(beta_normalization_tests)
-{
-    auto const nat = type::var("nat");
-    context ctx;
-    ctx = extend(ctx, type::var_t("nat")).value();
-    ctx = extend(ctx, pre_typed_term::var_t("suc"), type::arr(nat, nat)).value();
-    auto const a = type::var("a");
-    auto const f = pre_typed_term::var("f");
-    auto const x = pre_typed_term::var("x");
-    auto const abs = [] <typename... Ts> (Ts&&... args) { return pre_typed_term::abs(std::forward<Ts>(args)...); };
-    auto const var_f = pre_typed_term::var_t("f");
-    auto const var_x = pre_typed_term::var_t("x");
-    // polymorphic function that applies any function f twice to any argument x
-    auto const twice = abs(type::var_t("a"), abs(var_f, type::arr(a, a), abs(var_x, a, app(f, app(f, x)))));
-    BOOST_TEST(legal_term(type_assign(ctx, twice).value()).ty() == type::pi("a", type::arr(type::arr(a, a), type::arr(a, a))));
-    ctx = extend(ctx, pre_typed_term::var_t("two"), nat).value();
-    auto const suc = pre_typed_term::var("suc");
-    auto const two = pre_typed_term::var("two");
-    auto const twice_nat_suc_two = legal_term(type_assign(ctx, app(twice, nat, suc, two)).value());
-    auto const suc_suc_two = legal_term(type_assign(ctx, app(suc, app(suc, two))).value());
-
-    BOOST_TEST(beta_normalize(twice_nat_suc_two) == suc_suc_two);
-}
-
 BOOST_AUTO_TEST_SUITE_END()

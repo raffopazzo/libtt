@@ -2,9 +2,9 @@ add_executable(pityp_legal_term_tests pityp_legal_term_tests.cpp)
 add_test(NAME pityp_legal_term_tests COMMAND pityp_legal_term_tests)
 target_link_libraries(pityp_legal_term_tests PUBLIC libtt::pityp)
 
-# add_executable(legal_term_beta_reduction_tests legal_term_beta_reduction_tests.cpp)
-# add_test(NAME legal_term_beta_reduction_tests COMMAND legal_term_beta_reduction_tests)
-# target_link_libraries(legal_term_beta_reduction_tests PUBLIC libtt::pityp)
+add_executable(pityp_beta_reduction_tests pityp_beta_reduction_tests.cpp)
+add_test(NAME pityp_beta_reduction_tests COMMAND pityp_beta_reduction_tests)
+target_link_libraries(pityp_beta_reduction_tests PUBLIC libtt::pityp)
 # 
 # add_executable(legal_term_substitution_tests legal_term_substitution_tests.cpp)
 # add_test(NAME legal_term_substitution_tests COMMAND legal_term_substitution_tests)

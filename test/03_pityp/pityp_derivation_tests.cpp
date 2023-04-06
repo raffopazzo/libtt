@@ -110,4 +110,19 @@ BOOST_AUTO_TEST_CASE(abs2_test)
     BOOST_TEST(conclusion_of(type_assign(empty, f)) == term_judgement_t(empty, term_stm_t(f, p)));
 }
 
+BOOST_AUTO_TEST_CASE(poly_id_application_test)
+{
+    auto const poly_id =
+        pre_typed_term::abs(
+            type::var_t("a"),
+            pre_typed_term::abs(
+                pre_typed_term::var_t("x"), type::var("a"),
+                pre_typed_term::var("x")));
+    context ctx;
+    ctx = extend(ctx, type::var_t("s")).value();
+    ctx = extend(ctx, pre_typed_term::var_t("y"), type::var("s")).value();
+    auto const expr = pre_typed_term::app(pre_typed_term::app(poly_id, type::var("s")), pre_typed_term::var("y"));
+    BOOST_TEST(conclusion_of(type_assign(ctx, expr)) == term_judgement_t(ctx, term_stm_t(expr, type::var("s"))));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
