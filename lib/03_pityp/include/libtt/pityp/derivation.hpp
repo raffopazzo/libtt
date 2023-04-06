@@ -93,27 +93,14 @@ using term_judgement_t = judgement<term_stm_t>;
 
 // derivation
 
-// An instance of `derivation` can only be obtained from `type_assign()` or `term_search()`.
-// Therefore, even though the formation rule has a type statement as conclusion,
-// any instance of `derivation` will always have a term statement as conclusion.
 struct derivation
 {
     using rec_t = boost::recursive_wrapper<derivation>;
 
-//  // The formation rule says that `ty` is a properly formed type in the given context.
-//  struct form_t
-//  {
-//      auto const& ctx() const { return m_ctx; }
-//      auto const& ty() const { return m_ty; }
-//
-//  private:
-//      form_t(context, type);
-//
-//      context m_ctx;
-//      type m_ty;
-//
-//      friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
-//  };
+    // NB here we could define `struct form_t` but we omit it because an instance of `derivation` can only
+    // be obtained from `type_assign()` or `term_search()` (not yet implemebted).
+    // Therefore, even though the formation rule has a type statement as conclusion,
+    // any instance of `derivation` will always have a term statement as conclusion.
 
     struct var_t
     {
@@ -246,8 +233,7 @@ inline std::optional<term_judgement_t> conclusion_of(std::optional<derivation> c
     return x ? std::optional{conclusion_of(*x)} : std::nullopt;
 }
 
-// Obtain a derivation, if one exists, whose conclusion contains the judgement that the given term has a certain type.
-//
+// Obtain a derivation, if one exists, whose conclusion is the judgement that the given term has a certain type.
 std::optional<derivation> type_assign(context const&, pre_typed_term const&);
 inline bool type_check(context const& ctx, pre_typed_term const& x, type const& t)
 {

@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(applications_with_function_from_context_dont_reduce)
     BOOST_TEST(beta_normalize(m) == m);
 }
 
-BOOST_AUTO_TEST_CASE(can_beta_reduce_recursively)
+BOOST_AUTO_TEST_CASE(can_beta_reduce_inside_abstraction)
 {
     auto const m = legal_term(type_assign(empty, pre_typed_term::abs("x", s, pre_typed_term::app(id, x))).value());
     BOOST_TEST(num_redexes(m) == 1ul);

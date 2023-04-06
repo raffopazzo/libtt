@@ -64,14 +64,12 @@ static pre_typed_term one_step_reduction(pre_typed_term const& x)
 
         pre_typed_term operator()(pre_typed_term::abs1_t const& x) const
         {
-            return pre_typed_term(x);
-            // return pre_typed_term::abs(x.var, x.var_type, one_step_reduction(x.body.get()));
+            return pre_typed_term::abs(x.var, x.var_type, one_step_reduction(x.body.get()));
         }
 
         pre_typed_term operator()(pre_typed_term::abs2_t const& x) const
         {
-            return pre_typed_term(x);
-            // return pre_typed_term::abs(x.var, one_step_reduction(x.body.get()));
+            return pre_typed_term::abs(x.var, one_step_reduction(x.body.get()));
         }
     };
     return std::visit(visitor{}, x.value);
