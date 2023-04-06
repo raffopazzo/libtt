@@ -28,7 +28,7 @@ std::optional<legal_term> substitute(legal_term const& x, pre_typed_term::var_t 
     // But this is simpler and guaranteed to work by pure Type Theory.
     // If it becomes a performance bottleneck we can look into implementing this differently,
     // which might require `legal_term` to declare `substitute()` as friend.
-    auto type = x.ctx()[var];
+    auto const type = x.ctx()[var];
     if (not type)
         // `var` is not in `x`, so substitution succeeds without changing `x`.
         return x;

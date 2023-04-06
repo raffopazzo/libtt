@@ -1,4 +1,4 @@
-#define BOOST_TEST_MODULE pre_typed_term
+#define BOOST_TEST_MODULE legal_term
 #include <boost/test/included/unit_test.hpp>
 
 #include "libtt/typed/legal_term.hpp"
