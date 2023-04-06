@@ -96,4 +96,12 @@ BOOST_AUTO_TEST_CASE(cannot_add_type_if_name_maps_to_var)
     BOOST_TEST(not extend(ctx, type::var_t("t")).has_value());
 }
 
+BOOST_AUTO_TEST_CASE(cannot_add_var_twice)
+{
+    context ctx;
+    ctx = extend(ctx, type::var_t("s")).value();
+    ctx = extend(ctx, pre_typed_term::var_t("t"), type::var("s")).value();
+    BOOST_TEST(not extend(ctx, pre_typed_term::var_t("t"), type::var("s")).has_value());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
