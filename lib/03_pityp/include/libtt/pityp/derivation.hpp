@@ -93,6 +93,9 @@ using term_judgement_t = judgement<term_stm_t>;
 
 // derivation
 
+// Here `derivation` is only modeling derivations of terms;
+// the derivation of a type is trivially obtained by the formation rule.
+// Perhaps we could add some `struct type_derivation` and put the formation rule (and only that) in there.
 struct derivation
 {
     using rec_t = boost::recursive_wrapper<derivation>;
