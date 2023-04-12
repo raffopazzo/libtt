@@ -126,6 +126,7 @@ struct derivation
         type m_ty;
 
         friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+        friend std::optional<derivation> term_search(context const&, type const&);
     };
 
     struct app1_t
@@ -149,6 +150,7 @@ struct derivation
         type m_ty;
 
         friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+        friend std::optional<derivation> term_search(context const&, type const&);
     };
 
     struct app2_t
@@ -197,6 +199,7 @@ struct derivation
         type m_ty;
 
         friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+        friend std::optional<derivation> term_search(context const&, type const&);
     };
 
     struct abs2_t
@@ -240,6 +243,7 @@ inline std::optional<term_judgement_t> conclusion_of(std::optional<derivation> c
 
 // Obtain a derivation, if one exists, whose conclusion is the judgement that the given term has a certain type.
 std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+std::optional<derivation> term_search(context const&, type const&);
 inline bool type_check(context const& ctx, pre_typed_term const& x, type const& t)
 {
     auto const conclusion = conclusion_of(type_assign(ctx, x));

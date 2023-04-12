@@ -149,6 +149,14 @@ static std::vector<derivation> find_all_or_nothing(context const& ctx, std::vect
     return result;
 }
 
+static std::string generate_fresh_var_name(context const& ctx)
+{
+    for (auto const& name: core::var_name_generator())
+        if (not ctx.decls.contains(pre_typed_term::var_t(name)))
+            return name;
+    __builtin_unreachable();
+}
+
 std::optional<derivation> term_search(context const& ctx, type const& target)
 {
     // The easy case is if there is a declaration in the given context for the target type.
@@ -195,20 +203,9 @@ std::optional<derivation> term_search(context const& ctx, type const& target)
 
         std::optional<derivation> operator()(type::arr_t const& target) const
         {
-            auto [ext_ctx, new_var] = [this, &target] ()
-            {
-                for (auto new_var_name: core::var_name_generator())
-                {
-                    auto new_var = pre_typed_term::var_t(std::move(new_var_name));
-                    if (not ctx.decls.contains(new_var))
-                    {
-                        auto ext_ctx = ctx;
-                        ext_ctx.decls.emplace(new_var, target.dom.get());
-                        return std::make_pair(std::move(ext_ctx), std::move(new_var));
-                    }
-                }
-                __builtin_unreachable();
-            }();
+            auto new_var = pre_typed_term::var_t(generate_fresh_var_name(ctx));
+            auto ext_ctx = ctx;
+            ext_ctx.decls.emplace(new_var, target.dom.get());
             if (auto d = term_search(std::move(ext_ctx), target.img.get()))
                 return derivation(
                     derivation::abs_t(

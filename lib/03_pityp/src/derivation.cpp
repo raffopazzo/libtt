@@ -1,6 +1,8 @@
 #include "libtt/pityp/derivation.hpp"
+#include "libtt/core/var_name_generator.hpp"
 
 #include <algorithm>
+#include <numeric>
 #include <vector>
 
 namespace libtt::pityp {
@@ -243,6 +245,117 @@ std::optional<derivation> type_assign(context const& ctx, pre_typed_term const& 
         }
     };
     return std::visit(visitor{ctx}, x.value);
+}
+
+static std::vector<type> try_split_fun_args(type::arr_t const& arr_type, type const& image_type)
+{
+    auto const* p_arr_type = &arr_type;
+    std::vector<type> result;
+    result.push_back(p_arr_type->dom.get());
+    while (p_arr_type->img.get() != image_type)
+    {
+        p_arr_type = std::get_if<type::arr_t>(&p_arr_type->img.get().value);
+        if (p_arr_type == nullptr)
+            return {};
+        result.push_back(p_arr_type->dom.get());
+    }
+    return result;
+}
+
+static std::vector<derivation> find_all_or_nothing(context const& ctx, std::vector<type> const& types)
+{
+    std::vector<derivation> result;
+    for (auto const& t: types)
+        if (auto v = term_search(ctx, t))
+            result.push_back(std::move(*v));
+        else
+            return {};
+    return result;
+}
+
+static std::string generate_fresh_var_name(context const& ctx)
+{
+    for (auto const& name: core::var_name_generator())
+        if (not ctx.contains(pre_typed_term::var_t(name)) and not ctx.contains(type::var_t(name))) 
+            return name;
+    __builtin_unreachable();
+}
+
+std::optional<derivation> term_search(context const& ctx, type const& target)
+{
+    // TODO could check if type is legal in this context, otherwise bail out right away
+
+    std::vector<context::var_decl_t> var_decls;
+    for (auto const& d: decls_of(ctx))
+        if (auto const* const p_var = std::get_if<context::var_decl_t>(&d))
+            var_decls.push_back(*p_var);
+
+    auto const var_rule = [&] (context::var_decl_t const& decl)
+    {
+        return derivation(derivation::var_t(ctx, decl.subject, decl.ty));
+    };
+
+    // The easy case is if there is a term declaration in the given context for the target type.
+    for (auto const& decl: var_decls)
+        if (decl.ty == target)
+            return var_rule(decl);
+
+    // There isn't one. But there might be a function whose image type matches with the target type.
+    // If so, it suffices to find terms in the domain types (or a subset in case of partial application).
+    for (auto const& decl: var_decls)
+        if (auto const* const p_arr_type = std::get_if<type::arr_t>(&decl.ty.value))
+        {
+            auto const arg_terms = find_all_or_nothing(ctx, try_split_fun_args(*p_arr_type, target));
+            if (not arg_terms.empty())
+            {
+                auto const first_arg = arg_terms.begin();
+                return std::accumulate(
+                    std::next(first_arg), arg_terms.end(),
+                    derivation(derivation::app1_t(ctx, var_rule(decl), *first_arg, p_arr_type->img.get())),
+                    [&ctx] (derivation const& acc, derivation const& arg)
+                    {
+                        // Because we are accumulating over multi-variate function, acc must also be of arrow type,
+                        // and the result of this application will be of the type of the image.
+                        // Also, taking copy because otherwise, std::get would introduce a dangling reference
+                        // to the temporary judgement from conclusion_of(acc).
+                        auto const arr = std::get<type::arr_t>(conclusion_of(acc).stm.ty.value);
+                        return derivation(derivation::app1_t(ctx, acc, arg, arr.img.get()));
+                    });
+            }
+        }
+
+    // Another route is via 2nd order application: we can check if substitution inside pi-types yields the target type.
+    // TODO
+
+    // So far we could not produce a term of the target type, not even by function application.
+    // If we are trying to produce a simple type, then there is nothing else we can do.
+    // But if we are trying to search for a term of some function type, we might be able to assume a term
+    // of the domain type and with that produce a term of the image type.
+    struct visitor
+    {
+        context const& ctx;
+
+        std::optional<derivation> operator()(type::var_t const& target) const { return std::nullopt; }
+
+        std::optional<derivation> operator()(type::arr_t const& target) const
+        {
+            auto new_var = pre_typed_term::var_t(generate_fresh_var_name(ctx));
+            if (auto ext_ctx = extend(ctx, new_var, target.dom.get())) // if this fails, the domain type is an illegal
+                if (auto d = term_search(std::move(*ext_ctx), target.img.get()))
+                    return derivation(
+                        derivation::abs1_t(
+                            ctx,
+                            std::move(new_var),
+                            target.dom.get(),
+                            std::move(*d),
+                            type(target)));
+            return std::nullopt;
+        }
+
+        // TODO can we do anything for pi-types? if not add to the comment above
+        std::optional<derivation> operator()(type::pi_t const& target) const { return std::nullopt; }
+    };
+    return std::visit(visitor{ctx}, target.value);
 }
 
 }
