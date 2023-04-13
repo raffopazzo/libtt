@@ -174,6 +174,7 @@ struct derivation
         type m_ty;
 
         friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+        friend std::optional<derivation> term_search(context const&, type const&);
     };
 
     struct abs1_t

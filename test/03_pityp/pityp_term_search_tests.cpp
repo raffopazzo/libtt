@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE(simple_second_order_application)
     context ctx;
     ctx = extend(ctx, type::var_t("s")).value();
     ctx = extend(ctx, pre_typed_term::var_t("f"), type::pi("a", type::arr(type::var("a"), type::var("a")))).value();
-    // note that `lambda x:s . x` is a valid result, but probably less useful than `f s` so we should prefer the latter
+    // note that `lambda x:s . x` is a valid result, but probably less useful than `f s` so we prefer the latter
     BOOST_TEST(
         conclusion_of(term_search(ctx, s_to_s)) ==
         term_judgement_t(ctx, term_stm_t(pre_typed_term::app(f, s), s_to_s)));

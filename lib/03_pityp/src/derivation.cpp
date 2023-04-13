@@ -281,14 +281,22 @@ static std::string generate_fresh_var_name(context const& ctx)
     __builtin_unreachable();
 }
 
+template <typename T, typename U>
+std::pair<std::vector<T>, std::vector<U>> partition(std::vector<std::variant<T, U>> const& xs)
+{
+    std::pair<std::vector<T>, std::vector<U>> res;
+    for (auto const& x: xs)
+        if (std::holds_alternative<T>(x))
+            res.first.push_back(std::get<T>(x));
+        else
+            res.second.push_back(std::get<U>(x));
+    return res;
+}
+
 std::optional<derivation> term_search(context const& ctx, type const& target)
 {
     // TODO could check if type is legal in this context, otherwise bail out right away
-
-    std::vector<context::var_decl_t> var_decls;
-    for (auto const& d: decls_of(ctx))
-        if (auto const* const p_var = std::get_if<context::var_decl_t>(&d))
-            var_decls.push_back(*p_var);
+    auto const [type_decls, var_decls] = partition(decls_of(ctx));
 
     auto const var_rule = [&] (context::var_decl_t const& decl)
     {
@@ -325,7 +333,13 @@ std::optional<derivation> term_search(context const& ctx, type const& target)
         }
 
     // Another route is via 2nd order application: we can check if substitution inside pi-types yields the target type.
-    // TODO
+    // Currently this is quite naive and limited: all we can do is apply a pi-type term to all type declarations
+    // and hope that this sufficient to return the target type. This does not work in general so needs improving.
+    for (auto const& decl: var_decls)
+        if (auto const* const p_pi = std::get_if<type::pi_t>(&decl.ty.value))
+            for (auto const& type_decl: type_decls)
+                if (substitute(p_pi->body.get(), p_pi->var, type(type_decl.subject)) == target)
+                    return derivation(derivation::app2_t(ctx, var_rule(decl), type(type_decl.subject), target));
 
     // So far we could not produce a term of the target type, not even by function application.
     // If we are trying to produce a simple type, then there is nothing else we can do.
