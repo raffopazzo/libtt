@@ -138,4 +138,18 @@ BOOST_AUTO_TEST_CASE(simple_second_order_application)
         term_judgement_t(ctx, term_stm_t(pre_typed_term::app(f, s), s_to_s)));
 }
 
+BOOST_AUTO_TEST_CASE(recursive_second_order_application)
+{
+    context ctx;
+    ctx = extend(ctx, type::var_t("s")).value();
+    ctx = extend(ctx, type::var_t("t")).value();
+    ctx = extend(ctx, pre_typed_term::var_t("f"), type::pi("a", type::pi("b", type::arr(type::var("a"), type::var("b"))))).value();
+    BOOST_TEST(
+        conclusion_of(term_search(ctx, s_to_s)) ==
+        term_judgement_t(ctx, term_stm_t(pre_typed_term::app(pre_typed_term::app(f, s), s), s_to_s)));
+    BOOST_TEST(
+        conclusion_of(term_search(ctx, s_to_t)) ==
+        term_judgement_t(ctx, term_stm_t(pre_typed_term::app(pre_typed_term::app(f, s), t), s_to_t)));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

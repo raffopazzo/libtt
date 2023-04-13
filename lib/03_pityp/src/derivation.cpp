@@ -332,14 +332,37 @@ std::optional<derivation> term_search(context const& ctx, type const& target)
             }
         }
 
-    // Another route is via 2nd order application: we can check if substitution inside pi-types yields the target type.
-    // Currently this is quite naive and limited: all we can do is apply a pi-type term to all type declarations
-    // and hope that this sufficient to return the target type. This does not work in general so needs improving.
-    for (auto const& decl: var_decls)
-        if (auto const* const p_pi = std::get_if<type::pi_t>(&decl.ty.value))
+    // Another route is via 2nd order application:
+    // we can apply a pi-type term to a type declaration and hope that this returns the target type;
+    // it may return instead another pi-type, if so we can try again recursively.
+    // This is quite inefficient and limited so needs improving:
+    // for instance we may be looking for `f (s -> s)` or `f (s -> t)` but we only try `f s` or `f t`.
+    struct second_order_applicator
+    {
+        context const& ctx;
+        type const& target;
+        std::vector<context::type_decl_t> const& type_decls;
+
+        std::optional<derivation> operator()(derivation const& pi_term) const
+        {
+            auto const pi_type = std::get<type::pi_t>(type_of(pi_term).value);
             for (auto const& type_decl: type_decls)
-                if (substitute(p_pi->body.get(), p_pi->var, type(type_decl.subject)) == target)
-                    return derivation(derivation::app2_t(ctx, var_rule(decl), type(type_decl.subject), target));
+            {
+                auto&& result_type = substitute(pi_type.body.get(), pi_type.var, type(type_decl.subject));
+                auto&& application = derivation::app2_t(ctx, pi_term, type(type_decl.subject), std::move(result_type));
+                if (application.ty() == target)
+                    return derivation(std::move(application));
+                else if (is_pi(application.ty()))
+                    if (auto d = (*this)(derivation(application)))
+                        return derivation(std::move(*d));
+            }
+            return std::nullopt;
+        }
+    };
+    for (auto const& decl: var_decls)
+        if (is_pi(decl.ty))
+            if (auto d = second_order_applicator{ctx, target, type_decls}(var_rule(decl)))
+                return std::move(*d);
 
     // So far we could not produce a term of the target type, not even by function application.
     // If we are trying to produce a simple type, then there is nothing else we can do.

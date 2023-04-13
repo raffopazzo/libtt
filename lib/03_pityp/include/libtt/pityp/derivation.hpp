@@ -236,6 +236,8 @@ struct derivation
     explicit derivation(abs2_t);
 };
 
+inline type type_of(derivation const& d) { return std::visit([](auto const& x) { return x.ty(); }, d.value); }
+
 term_judgement_t conclusion_of(derivation const&);
 inline std::optional<term_judgement_t> conclusion_of(std::optional<derivation> const& x)
 {
