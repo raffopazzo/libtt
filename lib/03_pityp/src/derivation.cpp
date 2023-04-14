@@ -402,7 +402,8 @@ static std::optional<derivation> term_search_impl(context const& ctx, type const
                 if (result_type == target)
                     return std::move(app);
                 else if (is_pi(result_type))
-                    if (auto d = impl(app)) // TODO can this lead to infinite recursion?
+                    // NB no infinite recursion here: we're just doing consecutive applications of the same pi-term
+                    if (auto d = impl(app))
                         return d;
             }
             return std::nullopt;
