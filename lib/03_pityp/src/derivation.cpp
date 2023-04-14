@@ -322,12 +322,15 @@ struct derivation_rules
 
 static std::optional<derivation> term_search_impl(context const&, type const&, term_search_state&);
 
-static std::vector<derivation> find_all_or_nothing(context const& ctx, std::vector<type> const& types, term_search_state& st)
+static std::vector<derivation> find_all_or_nothing(
+    context const& ctx,
+    std::vector<type> const& types,
+    term_search_state& state)
 {
     std::vector<derivation> result;
     for (auto const& t: types)
     {
-        if (auto v = term_search_impl(ctx, t, st))
+        if (auto v = term_search_impl(ctx, t, state))
             result.push_back(std::move(*v));
         else
             return {};
@@ -391,8 +394,8 @@ static std::optional<derivation> term_search_impl(context const& ctx, type const
             possible_type_arguments.push_back(type(decl.subject));
 
         // TODO use "deducing this"
-        std::function<std::optional<derivation>(derivation)> impl;
-        impl = [&] (derivation const& pi_term) -> std::optional<derivation>
+        std::function<std::optional<derivation>(derivation)> try_apply;
+        try_apply = [&] (derivation const& pi_term) -> std::optional<derivation>
         {
             auto const pi_type = std::get<type::pi_t>(type_of(pi_term).value);
             for (auto const& type_arg: possible_type_arguments)
@@ -402,8 +405,8 @@ static std::optional<derivation> term_search_impl(context const& ctx, type const
                 if (result_type == target)
                     return std::move(app);
                 else if (is_pi(result_type))
-                    // NB no infinite recursion here: we're just doing consecutive applications of the same pi-term
-                    if (auto d = impl(app))
+                    // NB no infinite recursion here: we're just consecutively applying the "same" pi-term
+                    if (auto d = try_apply(app))
                         return d;
             }
             return std::nullopt;
@@ -413,7 +416,7 @@ static std::optional<derivation> term_search_impl(context const& ctx, type const
         {
             if (is_pi(decl.ty))
             {
-                if (auto r = impl(derivation_rules::var(ctx, decl)))
+                if (auto r = try_apply(derivation_rules::var(ctx, decl)))
                     return r;
             }
             else if (is_arr(decl.ty))
@@ -424,7 +427,7 @@ static std::optional<derivation> term_search_impl(context const& ctx, type const
                     // We found a function whose image is a pi-type;
                     // if we can call this function we can then try 2nd order application on its result.
                     if (auto x = term_search_impl(ctx, fun_type.dom.get(), state))
-                        if (auto r = impl(derivation_rules::app1(ctx, derivation_rules::var(ctx, decl), std::move(*x))))
+                        if (auto r = try_apply(derivation_rules::app1(ctx, derivation_rules::var(ctx, decl), std::move(*x))))
                             return r;
                 }
                 else
@@ -453,14 +456,13 @@ static std::optional<derivation> term_search_impl(context const& ctx, type const
         return std::nullopt;
     };
 
-    auto const try_all =
-        [] <typename... Strategies> (Strategies&&... strategies)
-        {
-            std::optional<derivation> result;
-            auto const try_one = [&] (auto const& f) { if (not result) result = f(); };
-            (try_one(strategies), ...);
-            return result;
-        };
+    auto const try_all = [] (auto&&... strategies)
+    {
+        std::optional<derivation> result;
+        auto const try_one = [&] (auto const& strategy) { if (not result) result = strategy(); };
+        (try_one(strategies), ...);
+        return result;
+    };
 
     auto const found_it = std::ranges::find_if(state.found, [&] (auto const& p) { return p.first == target; });
     if (found_it != state.found.end())
