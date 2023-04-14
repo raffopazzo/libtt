@@ -181,6 +181,8 @@ term_judgement_t conclusion_of(derivation const& x)
     return std::visit(visitor{}, x.value);
 }
 
+static type type_of(derivation const& d) { return std::visit([](auto const& x) { return x.ty(); }, d.value); }
+
 struct derivation_rules
 {
     static derivation var(context ctx, context::var_decl_t decl)
