@@ -440,11 +440,9 @@ static std::optional<derivation> term_search_impl(context const& ctx, type const
         {
             auto new_var = pre_typed_term::var_t(generate_fresh_var_name(ctx));
             if (auto ext_ctx = extend(ctx, new_var, p_fun_type->dom.get())) // if this fails, the domain type is illegal
-            {
-                // here we are going to perform a new search but it is in a new context, so we start afresh
+                // here we are going to perform a new search in a new context, so we start afresh with a new state
                 if (auto d = term_search(std::move(*ext_ctx), p_fun_type->img.get()))
                     return derivation_rules::abs1(ctx, std::move(new_var), p_fun_type->dom.get(), std::move(*d));
-            }
         }
         return std::nullopt;
     };
