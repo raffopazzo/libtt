@@ -76,6 +76,10 @@ struct term_stm_t
 {
     pre_typed_term subject;
     type ty;
+
+    // Remove default ctor, to enforce a compile time check that both fields are set.
+    term_stm_t(pre_typed_term s, type t) : subject(std::move(s)), ty(std::move(t)) { }
+
     bool operator==(term_stm_t const&) const = default;
 };
 
@@ -126,7 +130,7 @@ struct derivation
         type m_ty;
 
         friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
-        friend std::optional<derivation> term_search(context const&, type const&);
+        friend struct derivation_rules;
     };
 
     struct app1_t
@@ -150,7 +154,7 @@ struct derivation
         type m_ty;
 
         friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
-        friend std::optional<derivation> term_search(context const&, type const&);
+        friend struct derivation_rules;
     };
 
     struct app2_t
@@ -174,7 +178,7 @@ struct derivation
         type m_ty;
 
         friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
-        friend std::optional<derivation> term_search(context const&, type const&);
+        friend struct derivation_rules;
     };
 
     struct abs1_t
@@ -200,7 +204,7 @@ struct derivation
         type m_ty;
 
         friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
-        friend std::optional<derivation> term_search(context const&, type const&);
+        friend struct derivation_rules;
     };
 
     struct abs2_t

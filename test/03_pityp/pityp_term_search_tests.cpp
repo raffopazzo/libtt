@@ -21,6 +21,7 @@ using namespace libtt::pityp;
 
 boost::test_tools::predicate_result alpha_equivalent(std::optional<term_judgement_t> const& a, term_judgement_t b)
 {
+    // TODO: shouldn't `a->stm.ty == b.stm.ty` be replaced with `is_alpha_equivalent(a->stm.ty, b.stm.ty)` ?
     if (a and a->ctx == b.ctx and a->stm.ty == b.stm.ty and is_alpha_equivalent(a->stm.subject, b.stm.subject))
         return true;
     boost::test_tools::predicate_result res(false);
@@ -129,13 +130,29 @@ BOOST_AUTO_TEST_CASE(should_find_term_of_first_order_abstraction)
 
 BOOST_AUTO_TEST_CASE(simple_second_order_application)
 {
-    context ctx;
-    ctx = extend(ctx, type::var_t("s")).value();
-    ctx = extend(ctx, pre_typed_term::var_t("f"), type::pi("a", type::arr(type::var("a"), type::var("a")))).value();
+    auto const ctx1 = [&]
+    {
+        context ctx;
+        ctx = extend(ctx, type::var_t("s")).value();
+        ctx = extend(ctx, pre_typed_term::var_t("f"), type::pi("a", type::arr(type::var("a"), type::var("a")))).value();
+        return ctx;
+    }();
     // note that `lambda x:s . x` is a valid result, but probably less useful than `f s` so we prefer the latter
     BOOST_TEST(
-        conclusion_of(term_search(ctx, s_to_s)) ==
-        term_judgement_t(ctx, term_stm_t(pre_typed_term::app(f, s), s_to_s)));
+        conclusion_of(term_search(ctx1, s_to_s)) ==
+        term_judgement_t(ctx1, term_stm_t(pre_typed_term::app(f, s), s_to_s)));
+
+    auto const ctx2 = [&]
+    {
+        context ctx;
+        ctx = extend(ctx, type::var_t("s")).value();
+        ctx = extend(ctx, pre_typed_term::var_t("f"), type::pi("a", type::var("a"))).value();
+        return ctx;
+    }();
+    // note that `lambda x:s . x` is a valid result, but probably less useful than `f (s->s)` so we prefer the latter
+    BOOST_TEST(
+        conclusion_of(term_search(ctx2, s_to_s)) ==
+        term_judgement_t(ctx2, term_stm_t(pre_typed_term::app(f, s_to_s), s_to_s)));
 }
 
 BOOST_AUTO_TEST_CASE(recursive_second_order_application)
@@ -150,6 +167,33 @@ BOOST_AUTO_TEST_CASE(recursive_second_order_application)
     BOOST_TEST(
         conclusion_of(term_search(ctx, s_to_t)) ==
         term_judgement_t(ctx, term_stm_t(pre_typed_term::app(pre_typed_term::app(f, s), t), s_to_t)));
+}
+
+BOOST_AUTO_TEST_CASE(absurd_test)
+{
+    auto const absurdity = type::pi("a", type::var("a"));
+    context const ctx1 = [&]
+    {
+        context ctx;
+        ctx = extend(ctx, type::var_t("s")).value();
+        ctx = extend(ctx, pre_typed_term::var_t("x"), absurdity).value();
+        return ctx;
+    }();
+    BOOST_TEST(conclusion_of(term_search(ctx1, s)) == term_judgement_t(ctx1, term_stm_t(pre_typed_term::app(x, s), s)));
+
+    context const ctx2 = [&]
+    {
+        context ctx;
+        ctx = extend(ctx, type::var_t("s")).value();
+        ctx = extend(ctx, type::var_t("t")).value();
+        ctx = extend(ctx, pre_typed_term::var_t("x"), type::arr(s, absurdity)).value();
+        ctx = extend(ctx, pre_typed_term::var_t("f"), type::arr(type::arr(s, s), s)).value();
+        return ctx;
+    }();
+    auto const alpha = pre_typed_term::app(f, pre_typed_term::abs(pre_typed_term::var_t("x"), s, x));
+    auto const beta = pre_typed_term::app(pre_typed_term::app(x, alpha), t);
+    BOOST_TEST(alpha_equivalent(conclusion_of(term_search(ctx2, s)), term_judgement_t(ctx2, term_stm_t(alpha, s))));
+    BOOST_TEST(alpha_equivalent(conclusion_of(term_search(ctx2, t)), term_judgement_t(ctx2, term_stm_t(beta, t))));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

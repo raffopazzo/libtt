@@ -1,5 +1,7 @@
 #include "libtt/pityp/alpha_equivalence.hpp"
 
+#include <iostream>
+
 #include <type_traits>
 
 namespace libtt::pityp {
@@ -20,12 +22,12 @@ struct alpha_equivalence_visitor
 
     bool operator()(pre_typed_term::app1_t const& x, pre_typed_term::app1_t const& y) const
     {
-        return is_alpha_equivalent(x.left.get(), y.left.get()) and is_alpha_equivalent(x.right.get(), y.right.get());
+        return is_alpha_equivalent(x.left.get(), y.left.get())and is_alpha_equivalent(x.right.get(), y.right.get());
     }
 
     bool operator()(pre_typed_term::app2_t const& x, pre_typed_term::app2_t const& y) const
     {
-        return false; // TODO
+        return is_alpha_equivalent(x.left.get(), y.left.get())and is_alpha_equivalent(x.right, y.right);
     }
 
     bool operator()(pre_typed_term::abs1_t const& x, pre_typed_term::abs1_t const& y) const
@@ -49,6 +51,7 @@ struct alpha_equivalence_visitor
 
     bool operator()(pre_typed_term::abs2_t const& x, pre_typed_term::abs2_t const& y) const
     {
+        std::cerr << "WARN: alpha equivalence of 2nd order abstraction not implemented" << std::endl;
         return false; // TODO
     }
 };
