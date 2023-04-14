@@ -181,114 +181,9 @@ term_judgement_t conclusion_of(derivation const& x)
     return std::visit(visitor{}, x.value);
 }
 
-std::optional<derivation> type_assign(context const& ctx, pre_typed_term const& x)
-{
-    struct visitor
-    {
-        context const& ctx;
-
-        std::optional<derivation> operator()(pre_typed_term::var_t const& x) const
-        {
-            if (auto decl = ctx[x])
-                return derivation(derivation::var_t(ctx, std::move(decl->subject), std::move(decl->ty)));
-            else
-                return std::nullopt;
-        }
-
-        std::optional<derivation> operator()(pre_typed_term::app1_t const& x) const
-        {
-            auto left_d = type_assign(ctx, x.left.get());
-            if (not left_d) return std::nullopt;
-            auto const left_conclusion = conclusion_of(*left_d);
-            auto p_abs = std::get_if<type::arr_t>(&left_conclusion.stm.ty.value);
-            if (not p_abs)  return std::nullopt;
-            auto right_d = type_assign(ctx, x.right.get());
-            if (not right_d) return std::nullopt;
-            auto const right_conclusion = conclusion_of(*right_d);
-            if (right_conclusion.stm.ty != p_abs->dom.get()) return std::nullopt;
-            return derivation(derivation::app1_t(ctx, std::move(*left_d), std::move(*right_d), p_abs->img.get()));
-        }
-
-        std::optional<derivation> operator()(pre_typed_term::app2_t const& x) const
-        {
-            auto left_d = type_assign(ctx, x.left.get());
-            if (not left_d) return std::nullopt;
-            auto const left_conclusion = conclusion_of(*left_d);
-            auto p_pi = std::get_if<type::pi_t>(&left_conclusion.stm.ty.value);
-            if (not p_pi)  return std::nullopt;
-            auto const ty = substitute(p_pi->body.get(), p_pi->var, x.right);
-            return derivation(derivation::app2_t(ctx, std::move(*left_d), x.right, ty));
-        }
-
-        std::optional<derivation> operator()(pre_typed_term::abs1_t const& x) const
-        {
-            if (auto ext_ctx = extend(ctx, x.var, x.var_type))
-                if (auto body = type_assign(*ext_ctx, x.body.get()))
-                {
-                    // store type of conclusion before moving body
-                    auto const ty = type::arr(x.var_type, conclusion_of(*body).stm.ty);
-                    return derivation(derivation::abs1_t(ctx, x.var, x.var_type, std::move(*body), ty));
-                }
-            return std::nullopt;
-        }
-
-        std::optional<derivation> operator()(pre_typed_term::abs2_t const& x) const
-        {
-            if (auto ext_ctx = extend(ctx, x.var))
-                if (auto body = type_assign(*ext_ctx, x.body.get()))
-                {
-                    // store type of conclusion before moving body
-                    auto const ty = type::pi(x.var, conclusion_of(*body).stm.ty);
-                    return derivation(derivation::abs2_t(ctx, x.var, std::move(*body), ty));
-                }
-            return std::nullopt;
-        }
-    };
-    return std::visit(visitor{ctx}, x.value);
-}
-
-static std::vector<type> try_split_fun_args(type::arr_t const& arr_type, type const& image_type)
-{
-    auto const* p_arr_type = &arr_type;
-    std::vector<type> result;
-    result.push_back(p_arr_type->dom.get());
-    while (p_arr_type->img.get() != image_type)
-    {
-        p_arr_type = std::get_if<type::arr_t>(&p_arr_type->img.get().value);
-        if (p_arr_type == nullptr)
-            return {};
-        result.push_back(p_arr_type->dom.get());
-    }
-    return result;
-}
-
-static std::vector<context::var_decl_t> var_decls_of(context const& ctx)
-{
-    std::vector<context::var_decl_t> result;
-    for (auto const& decl: decls_of(ctx))
-        if (auto const* const p = std::get_if<context::var_decl_t>(&decl))
-            result.push_back(*p);
-    return result;
-}
-
-static std::vector<context::type_decl_t> type_decls_of(context const& ctx)
-{
-    std::vector<context::type_decl_t> result;
-    for (auto const& decl: decls_of(ctx))
-        if (auto const* const p = std::get_if<context::type_decl_t>(&decl))
-            result.push_back(*p);
-    return result;
-}
-
-struct term_search_state
-{
-    std::vector<type> in_progress;
-    std::vector<std::pair<type, derivation>> found;
-};
-
 struct derivation_rules
 {
-    static derivation var(context ctx, context::var_decl_t const& decl)
+    static derivation var(context ctx, context::var_decl_t decl)
     {
         return derivation(derivation::var_t(std::move(ctx), std::move(decl.subject), std::move(decl.ty)));
     }
@@ -318,6 +213,87 @@ struct derivation_rules
             std::move(fun_type)
         ));
     }
+
+    static derivation abs2(context ctx, type::var_t var, derivation body)
+    {
+        auto&& ty = type::pi(var, type_of(body));
+        return derivation(derivation::abs2_t(std::move(ctx), std::move(var), std::move(body), std::move(ty)));
+    }
+};
+
+std::optional<derivation> type_assign(context const& ctx, pre_typed_term const& x)
+{
+    struct visitor
+    {
+        context const& ctx;
+
+        std::optional<derivation> operator()(pre_typed_term::var_t const& x) const
+        {
+            if (auto decl = ctx[x])
+                return derivation_rules::var(ctx, std::move(*decl));
+            else
+                return std::nullopt;
+        }
+
+        std::optional<derivation> operator()(pre_typed_term::app1_t const& x) const
+        {
+            if (auto left = type_assign(ctx, x.left.get()))
+                if (auto const left_type = type_of(*left); is_arr(left_type))
+                    if (auto right = type_assign(ctx, x.right.get()))
+                        if (type_of(*right) == std::get<type::arr_t>(left_type.value).dom.get())
+                            return derivation_rules::app1(ctx, std::move(*left), std::move(*right));
+            return std::nullopt;
+        }
+
+        std::optional<derivation> operator()(pre_typed_term::app2_t const& x) const
+        {
+            if (auto left = type_assign(ctx, x.left.get()))
+                if (is_pi(type_of(*left)))
+                    return derivation_rules::app2(ctx, std::move(*left), x.right);
+            return std::nullopt;
+        }
+
+        std::optional<derivation> operator()(pre_typed_term::abs1_t const& x) const
+        {
+            if (auto ext_ctx = extend(ctx, x.var, x.var_type))
+                if (auto body = type_assign(*ext_ctx, x.body.get()))
+                    return derivation_rules::abs1(ctx, x.var, x.var_type, std::move(*body));
+            return std::nullopt;
+        }
+
+        std::optional<derivation> operator()(pre_typed_term::abs2_t const& x) const
+        {
+            if (auto ext_ctx = extend(ctx, x.var))
+                if (auto body = type_assign(*ext_ctx, x.body.get()))
+                    return derivation_rules::abs2(ctx, x.var, std::move(*body));
+            return std::nullopt;
+        }
+    };
+    return std::visit(visitor{ctx}, x.value);
+}
+
+static std::vector<context::var_decl_t> var_decls_of(context const& ctx)
+{
+    std::vector<context::var_decl_t> result;
+    for (auto const& decl: decls_of(ctx))
+        if (auto const* const p = std::get_if<context::var_decl_t>(&decl))
+            result.push_back(*p);
+    return result;
+}
+
+static std::vector<context::type_decl_t> type_decls_of(context const& ctx)
+{
+    std::vector<context::type_decl_t> result;
+    for (auto const& decl: decls_of(ctx))
+        if (auto const* const p = std::get_if<context::type_decl_t>(&decl))
+            result.push_back(*p);
+    return result;
+}
+
+struct term_search_state
+{
+    std::vector<type> in_progress;
+    std::vector<std::pair<type, derivation>> found;
 };
 
 static std::optional<derivation> term_search_impl(context const&, type const&, term_search_state&);
@@ -334,6 +310,21 @@ static std::vector<derivation> find_all_or_nothing(
             result.push_back(std::move(*v));
         else
             return {};
+    }
+    return result;
+}
+
+static std::vector<type> try_split_fun_args(type::arr_t const& arr_type, type const& image_type)
+{
+    auto const* p_arr_type = &arr_type;
+    std::vector<type> result;
+    result.push_back(p_arr_type->dom.get());
+    while (p_arr_type->img.get() != image_type)
+    {
+        p_arr_type = std::get_if<type::arr_t>(&p_arr_type->img.get().value);
+        if (p_arr_type == nullptr)
+            return {};
+        result.push_back(p_arr_type->dom.get());
     }
     return result;
 }

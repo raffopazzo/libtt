@@ -107,7 +107,7 @@ struct derivation
     using rec_t = boost::recursive_wrapper<derivation>;
 
     // NB here we could define `struct form_t` but we omit it because an instance of `derivation` can only
-    // be obtained from `type_assign()` or `term_search()` (not yet implemebted).
+    // be obtained from `type_assign()` or `term_search()`.
     // Therefore, even though the formation rule has a type statement as conclusion,
     // any instance of `derivation` will always have a term statement as conclusion.
 
@@ -129,7 +129,6 @@ struct derivation
         pre_typed_term::var_t m_var;
         type m_ty;
 
-        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
         friend struct derivation_rules;
     };
 
@@ -153,7 +152,6 @@ struct derivation
         rec_t m_arg;
         type m_ty;
 
-        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
         friend struct derivation_rules;
     };
 
@@ -177,7 +175,6 @@ struct derivation
         type m_arg;
         type m_ty;
 
-        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
         friend struct derivation_rules;
     };
 
@@ -203,7 +200,6 @@ struct derivation
         rec_t m_body;
         type m_ty;
 
-        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
         friend struct derivation_rules;
     };
 
@@ -227,7 +223,7 @@ struct derivation
         rec_t m_body;
         type m_ty;
 
-        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+        friend struct derivation_rules;
     };
 
     using value_t = std::variant<var_t, app1_t, app2_t, abs1_t, abs2_t>;
