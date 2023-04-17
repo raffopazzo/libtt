@@ -446,8 +446,11 @@ static std::optional<derivation> term_search_impl(context const& ctx, type const
 
     // If we are looking for a term of a function type or of pi-type,
     // we might be able to assume the argument and deduce the result.
-    // Note that in either case we are going to perform a new search,
+    // NOTE: in either case we are going to perform a new search,
     // but in a new context, so we start afresh with a new state.
+    // TODO: by the Thinning Lemma, all the terms we already found
+    // in the old context can be found in the new extended context,
+    // so we could in principle re-use the terms we already found.
     auto const first_and_second_order_abstraction_strategy = [&] () -> std::optional<derivation>
     {
         struct visitor
