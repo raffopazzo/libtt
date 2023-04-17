@@ -194,6 +194,19 @@ BOOST_AUTO_TEST_CASE(absurd_test)
     auto const beta = pre_typed_term::app(pre_typed_term::app(x, alpha), t);
     BOOST_TEST(alpha_equivalent(conclusion_of(term_search(ctx2, s)), term_judgement_t(ctx2, term_stm_t(alpha, s))));
     BOOST_TEST(alpha_equivalent(conclusion_of(term_search(ctx2, t)), term_judgement_t(ctx2, term_stm_t(beta, t))));
+
+    context const ctx3 = [&]
+    {
+        context ctx;
+        ctx = extend(ctx, type::var_t("s")).value();
+        ctx = extend(ctx, type::var_t("t")).value();
+        ctx = extend(ctx, pre_typed_term::var_t("x"), s).value();
+        ctx = extend(ctx, pre_typed_term::var_t("f"), type::arr(s, type::arr(s, absurdity))).value();
+        return ctx;
+    }();
+    BOOST_TEST(
+        conclusion_of(term_search(ctx3, t)) ==
+        term_judgement_t(ctx3, term_stm_t(pre_typed_term::app(pre_typed_term::app(pre_typed_term::app(f, x), x), t), t)));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

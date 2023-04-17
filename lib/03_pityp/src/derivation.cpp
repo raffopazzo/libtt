@@ -331,6 +331,14 @@ static std::vector<type> try_split_fun_args(type::arr_t const& arr_type, type co
     return result;
 }
 
+static type final_image_of(type::arr_t const& arr_type)
+{
+    auto const* p = &arr_type.img.get();
+    while (auto const* const q = std::get_if<type::arr_t>(&p->value))
+        p = &q->img.get();
+    return *p;
+}
+
 static std::string generate_fresh_var_name(context const& ctx)
 {
     for (auto const& name: core::var_name_generator())
@@ -412,20 +420,26 @@ static std::optional<derivation> term_search_impl(context const& ctx, type const
                 if (auto r = try_apply(derivation_rules::var(ctx, decl)))
                     return r;
             }
-            else if (is_arr(decl.ty))
+            else if (auto const* const p_arr = std::get_if<type::arr_t>(&decl.ty.value))
             {
-                auto const fun_type = std::get<type::arr_t>(decl.ty.value);
-                if (is_pi(fun_type.img.get()))
+                auto const image = final_image_of(*p_arr);
+                if (is_pi(image))
                 {
-                    // We found a function whose image is a pi-type;
-                    // if we can call this function we can then try 2nd order application on its result.
-                    if (auto x = term_search_impl(ctx, fun_type.dom.get(), state))
-                        if (auto r = try_apply(derivation_rules::app1(ctx, derivation_rules::var(ctx, decl), std::move(*x))))
-                            return r;
-                }
-                else
-                {
-                    // TODO this might still be multi-variate function whose final image is a pi-type
+                    auto const args = find_all_or_nothing(ctx, try_split_fun_args(*p_arr, image), state);
+                    if (not args.empty())
+                    {
+                        auto const first_arg = args.begin();
+                        auto const pi_term =
+                            std::accumulate(
+                                std::next(first_arg), args.end(),
+                                derivation_rules::app1(ctx, derivation_rules::var(ctx, decl), *first_arg),
+                                [&ctx] (derivation const& acc, derivation const& arg)
+                                {
+                                    return derivation_rules::app1(ctx, acc, arg);
+                                });
+                        if (auto d = try_apply(pi_term))
+                            return d;
+                    }
                 }
             }
         }
