@@ -51,8 +51,8 @@ struct alpha_equivalence_visitor
 
     bool operator()(pre_typed_term::abs2_t const& x, pre_typed_term::abs2_t const& y) const
     {
-        std::cerr << "WARN: alpha equivalence of 2nd order abstraction not implemented" << std::endl;
-        return false; // TODO
+        return x.var == y.var and is_alpha_equivalent(x.body.get(), y.body.get());
+        // TODO can still be alpha equivalence even if var names are different
     }
 };
 

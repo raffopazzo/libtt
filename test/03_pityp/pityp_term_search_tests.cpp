@@ -209,4 +209,24 @@ BOOST_AUTO_TEST_CASE(absurd_test)
         term_judgement_t(ctx3, term_stm_t(pre_typed_term::app(pre_typed_term::app(pre_typed_term::app(f, x), x), t), t)));
 }
 
+BOOST_AUTO_TEST_CASE(should_find_term_of_second_order_abstraction)
+{
+    context const empty;
+    auto const poly_id = pre_typed_term::abs(type::var_t("s"), pre_typed_term::abs(pre_typed_term::var_t("x"), s, x));
+    BOOST_TEST(
+        alpha_equivalent(
+            conclusion_of(term_search(empty, type::pi("s", type::arr(s, s)))),
+            term_judgement_t(empty, term_stm_t(poly_id, type::pi("s", type::arr(s, s))))));
+
+    // Perhaps annoyingly, but the derivation rules do not allow to derive a term of type `pi s:* . s -> s`
+    // in a context where `s : *`, because we cannot extend the context to `s:*, s:*` when looking for term `s -> s`.
+    context const ctx = [&]
+    {
+        context ctx;
+        ctx = extend(ctx, type::var_t("s")).value();
+        return ctx;
+    }();
+    BOOST_TEST(not conclusion_of(term_search(ctx, type::pi("s", type::arr(s, s)))).has_value());
+}
+
 BOOST_AUTO_TEST_SUITE_END()

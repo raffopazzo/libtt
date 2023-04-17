@@ -34,10 +34,8 @@ std::vector<context::decl_t> decls_of(context const& ctx)
 std::optional<context> extend(context const& ctx, type::var_t const& x)
 {
     std::optional<context> res;
-    if (not ctx.contains(pre_typed_term::var_t(x.name)))
+    if (not ctx.contains(x) and not ctx.contains(pre_typed_term::var_t(x.name)))
     {
-        // Technically the definition of a context does not allow to declare a type twice,
-        // but it really is an idempotent operation, so we do allow it.
         res = ctx;
         res->m_decls.emplace(x.name, x);
     }
@@ -446,19 +444,34 @@ static std::optional<derivation> term_search_impl(context const& ctx, type const
         return std::nullopt;
     };
 
-    // If we are looking for a term of a function type, we might be able to assume a term
-    // of the domain type and produce a term of the image type.
-    auto const first_order_abstraction_strategy = [&] () -> std::optional<derivation>
+    // If we are looking for a term of a function type or of pi-type,
+    // we might be able to assume the argument and deduce the result.
+    // Note that in either case we are going to perform a new search,
+    // but in a new context, so we start afresh with a new state.
+    auto const first_and_second_order_abstraction_strategy = [&] () -> std::optional<derivation>
     {
-        if (auto const* const p_fun_type = std::get_if<type::arr_t>(&target.value))
+        struct visitor
         {
-            auto new_var = pre_typed_term::var_t(generate_fresh_var_name(ctx));
-            if (auto ext_ctx = extend(ctx, new_var, p_fun_type->dom.get())) // if this fails, the domain type is illegal
-                // here we are going to perform a new search in a new context, so we start afresh with a new state
-                if (auto d = term_search(std::move(*ext_ctx), p_fun_type->img.get()))
-                    return derivation_rules::abs1(ctx, std::move(new_var), p_fun_type->dom.get(), std::move(*d));
-        }
-        return std::nullopt;
+            context const& ctx;
+            std::optional<derivation> operator()(type::var_t const&) const { return std::nullopt;}
+            std::optional<derivation> operator()(type::arr_t const& target) const
+            {
+                auto new_var = pre_typed_term::var_t(generate_fresh_var_name(ctx));
+                if (auto ext_ctx = extend(ctx, new_var, target.dom.get())) // if this fails, the domain type is illegal
+                    if (auto d = term_search(std::move(*ext_ctx), target.img.get()))
+                        return derivation_rules::abs1(ctx, std::move(new_var), target.dom.get(), std::move(*d));
+                return std::nullopt;
+            }
+            std::optional<derivation> operator()(type::pi_t const& target) const
+            {
+                // TODO if extension fails, the type variable is already in context; we should try again with a new name
+                if (auto ext_ctx = extend(ctx, target.var))
+                    if (auto d = term_search(std::move(*ext_ctx), target.body.get()))
+                        return derivation_rules::abs2(ctx, target.var, std::move(*d));
+                return std::nullopt;
+            }
+        };
+        return std::visit(visitor{ctx}, target.value);
     };
 
     auto const try_all = [] (auto&&... strategies)
@@ -481,7 +494,7 @@ static std::optional<derivation> term_search_impl(context const& ctx, type const
         var_rule_strategy,
         first_order_application_strategy,
         second_order_application_strategy,
-        first_order_abstraction_strategy
+        first_and_second_order_abstraction_strategy
     );
     state.in_progress.pop_back();
     if (result)
