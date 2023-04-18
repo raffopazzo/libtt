@@ -167,4 +167,10 @@ BOOST_AUTO_TEST_CASE(exercise_2_13_c)
     }
 }
 
+BOOST_AUTO_TEST_CASE(avoid_infinite_recursion)
+{
+    context const ctx{{{pre_typed_term::var_t("f"), type::arr(s, s)}}};
+    BOOST_TEST(not conclusion_of(term_search(ctx, s)).has_value());
+}
+
 BOOST_AUTO_TEST_SUITE_END()

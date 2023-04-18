@@ -1,6 +1,7 @@
 #include "libtt/typed/derivation.hpp"
 #include "libtt/core/var_name_generator.hpp"
 
+#include <algorithm>
 #include <numeric>
 
 namespace libtt::typed {
@@ -68,6 +69,32 @@ judgement conclusion_of(derivation const& x)
     return std::visit(visitor{}, x.value);
 }
 
+type type_of(derivation const& d)
+{
+    return std::visit([] (auto const& d) { return d.ty(); }, d.value);
+}
+
+struct derivation_rules
+{
+    static derivation var(context ctx, pre_typed_term::var_t x, type t)
+    {
+        return derivation(derivation::var_t(std::move(ctx), std::move(x), std::move(t)));
+    }
+
+    static derivation app(context ctx, derivation fun, derivation arg)
+    {
+        auto const fun_type = type_of(fun);
+        auto img_type = std::get<type::arr_t>(fun_type.value).img.get();
+        return derivation(derivation::app_t(std::move(ctx), std::move(fun), std::move(arg), std::move(img_type)));
+    }
+
+    static derivation abs(context ctx, pre_typed_term::var_t var, type var_type, derivation body)
+    {
+        auto ty = type::arr(var_type, type_of(body));
+        return derivation(derivation::abs_t(std::move(ctx), std::move(var), std::move(var_type), std::move(body), ty));
+    }
+};
+
 std::optional<derivation> type_assign(context const& ctx, pre_typed_term const& x)
 {
     struct visitor
@@ -77,28 +104,19 @@ std::optional<derivation> type_assign(context const& ctx, pre_typed_term const& 
         std::optional<derivation> operator()(pre_typed_term::var_t const& x) const
         {
             if (auto ty = ctx[x])
-                return derivation(derivation::var_t(ctx, x, std::move(*ty)));
+                return derivation_rules::var(ctx, x, std::move(*ty));
             else
                 return std::nullopt;
         }
 
         std::optional<derivation> operator()(pre_typed_term::app_t const& x) const
         {
-            auto left_d = type_assign(ctx, x.left.get());
-            if (not left_d) return std::nullopt;
-            auto const left_conclusion = conclusion_of(*left_d);
-            auto p_abs = std::get_if<type::arr_t>(&left_conclusion.stm.ty.value);
-            if (not p_abs)  return std::nullopt;
-            auto right_d = type_assign(ctx, x.right.get());
-            if (not right_d) return std::nullopt;
-            auto const right_conclusion = conclusion_of(*right_d);
-            if (right_conclusion.stm.ty != p_abs->dom.get()) return std::nullopt;
-            return derivation(derivation::app_t(
-                ctx,
-                std::move(*left_d),
-                std::move(*right_d),
-                p_abs->img.get()
-            ));
+            if (auto left_d = type_assign(ctx, x.left.get()))
+                if (auto const left_type = type_of(*left_d); is_arr(left_type))
+                    if (auto right_d = type_assign(ctx, x.right.get()))
+                        if (std::get<type::arr_t>(left_type.value).dom.get() == type_of(*right_d))
+                            return derivation_rules::app(ctx, std::move(*left_d), std::move(*right_d));
+            return std::nullopt;
         }
 
         std::optional<derivation> operator()(pre_typed_term::abs_t const& x) const
@@ -106,21 +124,34 @@ std::optional<derivation> type_assign(context const& ctx, pre_typed_term const& 
             auto ext_ctx = ctx;
             ext_ctx.decls[x.var] = x.var_type;
             if (auto body_derivation = type_assign(ext_ctx, x.body.get()))
-            {
-                auto function_type = type::arr(x.var_type, conclusion_of(*body_derivation).stm.ty);
-                return derivation(derivation::abs_t(
-                    ctx,
-                    x.var,
-                    x.var_type,
-                    std::move(*body_derivation),
-                    function_type
-                ));
-            }
+                return derivation_rules::abs(ctx, x.var, x.var_type, std::move(*body_derivation));
             else
                 return std::nullopt;
         }
     };
     return std::visit(visitor{ctx}, x.value);
+}
+
+struct term_search_state
+{
+    std::vector<type> in_progress;
+    std::vector<std::pair<type, derivation>> found;
+};
+
+static std::optional<derivation> term_search_impl(context const&, type const&, term_search_state&);
+
+static std::vector<derivation> find_all_or_nothing(
+    context const& ctx,
+    std::vector<type> const& types,
+    term_search_state& state)
+{
+    std::vector<derivation> result;
+    for (auto const& t: types)
+        if (auto v = term_search_impl(ctx, t, state))
+            result.push_back(std::move(*v));
+        else
+            return {};
+    return result;
 }
 
 static std::vector<type> try_split_fun_args(type::arr_t const& arr_type, type const& image_type)
@@ -138,17 +169,6 @@ static std::vector<type> try_split_fun_args(type::arr_t const& arr_type, type co
     return result;
 }
 
-static std::vector<derivation> find_all_or_nothing(context const& ctx, std::vector<type> const& types)
-{
-    std::vector<derivation> result;
-    for (auto const& t: types)
-        if (auto v = term_search(ctx, t))
-            result.push_back(std::move(*v));
-        else
-            return {};
-    return result;
-}
-
 static std::string generate_fresh_var_name(context const& ctx)
 {
     for (auto const& name: core::var_name_generator())
@@ -157,67 +177,100 @@ static std::string generate_fresh_var_name(context const& ctx)
     __builtin_unreachable();
 }
 
-std::optional<derivation> term_search(context const& ctx, type const& target)
+std::optional<derivation> term_search_impl(context const& ctx, type const& target, term_search_state& state)
 {
+    // We might have already found a term of this type.
+    auto const cache_lookup_strategy = [&] () -> std::optional<derivation>
+    {
+        auto const it = std::ranges::find_if(state.found, [&] (auto const& p) { return p.first == target; });
+        if (it != state.found.end())
+            return it->second;
+        return std::nullopt;
+    };
+
     // The easy case is if there is a declaration in the given context for the target type.
-    for (auto const& [var, ty]: ctx.decls)
-        if (target == ty)
-            return derivation(derivation::var_t(ctx, var, target));
+    auto const var_rule_strategy = [&] () -> std::optional<derivation>
+    {
+        for (auto const& [var, ty]: ctx.decls)
+            if (target == ty)
+                return derivation_rules::var(ctx, var, target);
+        return std::nullopt;
+    };
     // There isn't one. But there might be a function whose image type matches with the target type.
     // If so, it suffices to find terms in the domain types (or a subset in case of partial application).
-    for (auto const& [var, ty]: ctx.decls)
-        if (auto const* const p_arr_type = std::get_if<type::arr_t>(&ty.value))
-        {
-            auto const arg_terms = find_all_or_nothing(ctx, try_split_fun_args(*p_arr_type, target));
-            if (not arg_terms.empty())
-            {
-                auto const first_arg = arg_terms.begin();
-                return std::accumulate(
-                    std::next(first_arg), arg_terms.end(),
-                    derivation(
-                        derivation::app_t(
-                            ctx,
-                            derivation(derivation::var_t(ctx, var, ty)),
-                            *first_arg,
-                            p_arr_type->img.get())),
-                    [&ctx] (derivation const& acc, derivation const& arg)
-                    {
-                        // Because we are accumulating over multi-variate function, acc must also be of arrow type,
-                        // and the result of this application will be of the type of the image.
-                        // Also, taking copy because otherwise, std::get would introduce a dangling reference
-                        // to the temporary judgement from conclusion_of(acc).
-                        auto const arr = std::get<type::arr_t>(conclusion_of(acc).stm.ty.value);
-                        return derivation(derivation::app_t(ctx, acc, arg, arr.img.get()));
-                    });
-            }
-        }
-    // So far we could not produce a term of the target type, not even by function application.
-    // If we are trying to produce a simple type, then there is nothing else we can do.
-    // But if we are trying to search for a term of some function type, we might be able to assume a term
-    // of the domain type and with that produce a term of the image type.
-    struct visitor
+    auto const first_order_application_strategy = [&] () -> std::optional<derivation>
     {
-        context const& ctx;
-
-        std::optional<derivation> operator()(type::var_t const& target) const { return std::nullopt; }
-
-        std::optional<derivation> operator()(type::arr_t const& target) const
-        {
-            auto new_var = pre_typed_term::var_t(generate_fresh_var_name(ctx));
-            auto ext_ctx = ctx;
-            ext_ctx.decls.emplace(new_var, target.dom.get());
-            if (auto d = term_search(std::move(ext_ctx), target.img.get()))
-                return derivation(
-                    derivation::abs_t(
-                        ctx,
-                        std::move(new_var),
-                        target.dom.get(),
-                        std::move(*d),
-                        type(target)));
+        for (auto const& [var, ty]: ctx.decls)
+            if (auto const* const p_arr_type = std::get_if<type::arr_t>(&ty.value))
+            {
+                auto const arg_terms = find_all_or_nothing(ctx, try_split_fun_args(*p_arr_type, target), state);
+                if (not arg_terms.empty())
+                {
+                    auto const first_arg = arg_terms.begin();
+                    return std::accumulate(
+                        std::next(first_arg), arg_terms.end(),
+                        derivation_rules::app(ctx, derivation_rules::var(ctx, var, ty), *first_arg),
+                        [&ctx] (derivation const& acc, derivation const& arg)
+                        {
+                            return derivation_rules::app(ctx, acc, arg);
+                        });
+                }
+            }
             return std::nullopt;
-        }
     };
-    return std::visit(visitor{ctx}, target.value);
+    // If we are looking for a term of a function type, we might be able to assume the argument and deduce the result.
+    // NOTE: we are going to perform a new search, but in a new context, so we start afresh with a new state.
+    // TODO: by Thinning Lemma, all terms we already found in the old context can be found in the new extended context,
+    // so we could in principle re-use the terms we already found.
+    auto const first_order_abstraction_strategy = [&] () -> std::optional<derivation>
+    {
+        struct visitor
+        {
+            context const& ctx;
+
+            std::optional<derivation> operator()(type::var_t const& target) const { return std::nullopt; }
+
+            std::optional<derivation> operator()(type::arr_t const& target) const
+            {
+                auto new_var = pre_typed_term::var_t(generate_fresh_var_name(ctx));
+                auto ext_ctx = ctx;
+                ext_ctx.decls.emplace(new_var, target.dom.get());
+                if (auto d = term_search(std::move(ext_ctx), target.img.get()))
+                    return derivation_rules::abs(ctx, std::move(new_var), target.dom.get(), std::move(*d));
+                return std::nullopt;
+            }
+        };
+        return std::visit(visitor{ctx}, target.value);
+    };
+
+    auto const try_all = [] (auto const&... strategies)
+    {
+        std::optional<derivation> result;
+        auto const try_one = [&] (auto const& strategy) { if (not result) result = strategy(); };
+        (try_one(strategies), ...);
+        return result;
+    };
+
+    if (std::ranges::find(state.in_progress, target) != state.in_progress.end())
+        return std::nullopt;
+
+    state.in_progress.push_back(target);
+    auto result = try_all(
+        cache_lookup_strategy,
+        var_rule_strategy,
+        first_order_application_strategy,
+        first_order_abstraction_strategy
+    );
+    state.in_progress.pop_back();
+    if (result)
+        state.found.push_back(std::make_pair(target, *result));
+    return result;
+}
+
+std::optional<derivation> term_search(context const& ctx, type const& target)
+{
+    term_search_state state;
+    return term_search_impl(ctx, target, state);
 }
 
 }
