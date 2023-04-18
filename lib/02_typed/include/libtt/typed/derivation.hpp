@@ -64,8 +64,7 @@ struct derivation
         pre_typed_term::var_t m_var;
         type m_ty;
 
-        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
-        friend std::optional<derivation> term_search(context const&, type const&);
+        friend struct derivation_rules;
     };
 
     struct app_t
@@ -88,8 +87,7 @@ struct derivation
         rec_t m_arg;
         type m_ty;
 
-        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
-        friend std::optional<derivation> term_search(context const&, type const&);
+        friend struct derivation_rules;
     };
 
     struct abs_t
@@ -114,8 +112,7 @@ struct derivation
         rec_t m_body;
         type m_ty;
 
-        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
-        friend std::optional<derivation> term_search(context const&, type const&);
+        friend struct derivation_rules;
     };
 
     using value_t = std::variant<var_t, app_t, abs_t>;
