@@ -420,6 +420,8 @@ static std::optional<derivation> term_search_impl(context const& ctx, type const
             }
             else if (auto const* const p_arr = std::get_if<type::arr_t>(&decl.ty.value))
             {
+                // this could still be a, possibly multi-variate, function returning a pi-type; if so, we can search
+                // for valid arguments, invoke the function and then perform 2nd order application on its result
                 auto const image = final_image_of(*p_arr);
                 if (is_pi(image))
                 {
