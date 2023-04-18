@@ -18,6 +18,10 @@ add_executable(pityp_derivation_tests pityp_derivation_tests.cpp)
 add_test(NAME pityp_derivation_tests COMMAND pityp_derivation_tests)
 target_link_libraries(pityp_derivation_tests PUBLIC libtt::pityp)
 
+add_executable(pityp_term_search_tests pityp_term_search_tests.cpp)
+add_test(NAME pityp_term_search_tests COMMAND pityp_term_search_tests)
+target_link_libraries(pityp_term_search_tests PUBLIC libtt::pityp)
+
 add_executable(pityp_term_tests pityp_term_tests.cpp)
 add_test(NAME pityp_term_tests COMMAND pityp_term_tests)
 target_link_libraries(pityp_term_tests PUBLIC libtt::pityp)

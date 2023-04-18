@@ -76,6 +76,10 @@ struct term_stm_t
 {
     pre_typed_term subject;
     type ty;
+
+    // Remove default ctor, to enforce a compile time check that both fields are set.
+    term_stm_t(pre_typed_term s, type t) : subject(std::move(s)), ty(std::move(t)) { }
+
     bool operator==(term_stm_t const&) const = default;
 };
 
@@ -103,7 +107,7 @@ struct derivation
     using rec_t = boost::recursive_wrapper<derivation>;
 
     // NB here we could define `struct form_t` but we omit it because an instance of `derivation` can only
-    // be obtained from `type_assign()` or `term_search()` (not yet implemebted).
+    // be obtained from `type_assign()` or `term_search()`.
     // Therefore, even though the formation rule has a type statement as conclusion,
     // any instance of `derivation` will always have a term statement as conclusion.
 
@@ -125,7 +129,7 @@ struct derivation
         pre_typed_term::var_t m_var;
         type m_ty;
 
-        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+        friend struct derivation_rules;
     };
 
     struct app1_t
@@ -148,7 +152,7 @@ struct derivation
         rec_t m_arg;
         type m_ty;
 
-        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+        friend struct derivation_rules;
     };
 
     struct app2_t
@@ -171,7 +175,7 @@ struct derivation
         type m_arg;
         type m_ty;
 
-        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+        friend struct derivation_rules;
     };
 
     struct abs1_t
@@ -196,7 +200,7 @@ struct derivation
         rec_t m_body;
         type m_ty;
 
-        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+        friend struct derivation_rules;
     };
 
     struct abs2_t
@@ -219,7 +223,7 @@ struct derivation
         rec_t m_body;
         type m_ty;
 
-        friend std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+        friend struct derivation_rules;
     };
 
     using value_t = std::variant<var_t, app1_t, app2_t, abs1_t, abs2_t>;
@@ -240,6 +244,7 @@ inline std::optional<term_judgement_t> conclusion_of(std::optional<derivation> c
 
 // Obtain a derivation, if one exists, whose conclusion is the judgement that the given term has a certain type.
 std::optional<derivation> type_assign(context const&, pre_typed_term const&);
+std::optional<derivation> term_search(context const&, type const&);
 inline bool type_check(context const& ctx, pre_typed_term const& x, type const& t)
 {
     auto const conclusion = conclusion_of(type_assign(ctx, x));
