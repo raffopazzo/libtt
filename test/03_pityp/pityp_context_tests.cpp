@@ -53,16 +53,7 @@ BOOST_AUTO_TEST_CASE(can_add_type_decl)
     BOOST_TEST(ctx2[type::var_t("s")] == context::type_decl_t(type::var_t("s")));
     BOOST_TEST(ctx2[type::var_t("t")] == context::type_decl_t(type::var_t("t")));
 
-    auto const res3 = extend(ctx2, type::var_t("t")); // allow idempotence
-    BOOST_REQUIRE(res3.has_value());
-    auto const& ctx3 = *res3;
-    BOOST_TEST(not ctx3.empty());
-    BOOST_TEST(ctx3.contains(type::var_t("s")));
-    BOOST_TEST(ctx3.contains(type::var_t("t")));
-    BOOST_TEST(not ctx3.contains(pre_typed_term::var_t("s")));
-    BOOST_TEST(not ctx3.contains(pre_typed_term::var_t("t")));
-    BOOST_TEST(ctx3[type::var_t("s")] == context::type_decl_t(type::var_t("s")));
-    BOOST_TEST(ctx3[type::var_t("t")] == context::type_decl_t(type::var_t("t")));
+    BOOST_TEST(not extend(ctx2, type::var_t("t")).has_value()); // cannot declare type twice
 }
 
 BOOST_AUTO_TEST_CASE(can_add_var_decl)

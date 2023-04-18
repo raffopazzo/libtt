@@ -347,6 +347,15 @@ static std::string generate_fresh_var_name(context const& ctx)
 
 static std::optional<derivation> term_search_impl(context const& ctx, type const& target, term_search_state& state)
 {
+    // We might have already found a term of this type.
+    auto const cache_lookup_strategy = [&] () -> std::optional<derivation>
+    {
+        auto const it = std::ranges::find_if(state.found, [&] (auto const& p) { return p.first == target; });
+        if (it != state.found.end())
+            return it->second;
+        return std::nullopt;
+    };
+
     // The easy case is if there is a term declaration in the given context for the target type.
     auto const var_rule_strategy = [&] () -> std::optional<derivation>
     {
@@ -458,7 +467,7 @@ static std::optional<derivation> term_search_impl(context const& ctx, type const
         struct visitor
         {
             context const& ctx;
-            std::optional<derivation> operator()(type::var_t const&) const { return std::nullopt;}
+            std::optional<derivation> operator()(type::var_t const&) const { return std::nullopt; }
             std::optional<derivation> operator()(type::arr_t const& target) const
             {
                 auto new_var = pre_typed_term::var_t(generate_fresh_var_name(ctx));
@@ -469,7 +478,8 @@ static std::optional<derivation> term_search_impl(context const& ctx, type const
             }
             std::optional<derivation> operator()(type::pi_t const& target) const
             {
-                // TODO if extension fails, the type variable is already in context; we should try again with a new name
+                // TODO if extension fails, the type variable is already in context or used as term variable;
+                // we should try again with a new name
                 if (auto ext_ctx = extend(ctx, target.var))
                     if (auto d = term_search(std::move(*ext_ctx), target.body.get()))
                         return derivation_rules::abs2(ctx, target.var, std::move(*d));
@@ -479,7 +489,7 @@ static std::optional<derivation> term_search_impl(context const& ctx, type const
         return std::visit(visitor{ctx}, target.value);
     };
 
-    auto const try_all = [] (auto&&... strategies)
+    auto const try_all = [] (auto const&... strategies)
     {
         std::optional<derivation> result;
         auto const try_one = [&] (auto const& strategy) { if (not result) result = strategy(); };
@@ -487,15 +497,12 @@ static std::optional<derivation> term_search_impl(context const& ctx, type const
         return result;
     };
 
-    auto const found_it = std::ranges::find_if(state.found, [&] (auto const& p) { return p.first == target; });
-    if (found_it != state.found.end())
-        return found_it->second;
-
     if (std::ranges::find(state.in_progress, target) != state.in_progress.end())
         return std::nullopt;
 
     state.in_progress.push_back(target);
     auto result = try_all(
+        cache_lookup_strategy,
         var_rule_strategy,
         first_order_application_strategy,
         second_order_application_strategy,
