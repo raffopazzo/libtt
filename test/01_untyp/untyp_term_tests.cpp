@@ -14,7 +14,7 @@ namespace libtt::untyp
 
     std::ostream& operator<<(std::ostream& os, term const& x)
     {
-	return std::visit([&os] (auto const& y) -> std::ostream& { return os << y; }, x.value);
+        return std::visit([&os] (auto const& y) -> std::ostream& { return os << y; }, x.value);
     }
     std::ostream& operator<<(std::ostream& os, term::var_t const& x)
     {

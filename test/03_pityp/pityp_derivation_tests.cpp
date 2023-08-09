@@ -74,6 +74,18 @@ BOOST_AUTO_TEST_CASE(app2_test)
     }();
     BOOST_TEST(not conclusion_of(type_assign(empty, fs)).has_value());
     BOOST_TEST(conclusion_of(type_assign(ctx, fs)) == term_judgement_t(ctx, term_stm_t(fs, type::arr(s, s))));
+
+    context const ctx2 = [&]
+    {
+        context ctx;
+        ctx = extend(ctx, pre_typed_term::var_t("f"), p).value();
+        ctx = extend(ctx, type::var_t("s")).value();
+        auto const q = type::pi("b", type::arr(type::var("b"), type::var("b")));
+        ctx = extend(ctx, pre_typed_term::var_t("g"), type::arr(q, s)).value();
+        return ctx;
+    }();
+    auto const gf = pre_typed_term::app(pre_typed_term::var("g"), f);
+    BOOST_TEST(conclusion_of(type_assign(ctx2, gf)) == term_judgement_t(ctx2, term_stm_t(gf, s)));
 }
 
 BOOST_AUTO_TEST_CASE(abs1_test)

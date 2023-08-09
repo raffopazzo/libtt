@@ -240,7 +240,7 @@ std::optional<derivation> type_assign(context const& ctx, pre_typed_term const& 
             if (auto left = type_assign(ctx, x.left.get()))
                 if (auto const left_type = type_of(*left); is_arr(left_type))
                     if (auto right = type_assign(ctx, x.right.get()))
-                        if (type_of(*right) == std::get<type::arr_t>(left_type.value).dom.get())
+                        if (is_alpha_equivalent(type_of(*right), std::get<type::arr_t>(left_type.value).dom.get()))
                             return derivation_rules::app1(ctx, std::move(*left), std::move(*right));
             return std::nullopt;
         }
